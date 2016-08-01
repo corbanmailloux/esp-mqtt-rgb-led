@@ -201,6 +201,9 @@ class MqttLight(Light):
         """Turn the device off."""
         message = {"state": "OFF"}
 
+        if ATTR_TRANSITION in kwargs:
+            message["transition"] = int(kwargs[ATTR_TRANSITION])
+
         mqtt.publish(self._hass, self._topic["command_topic"],
                      json.dumps(message), self._qos, self._retain)
 

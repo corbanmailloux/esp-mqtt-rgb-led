@@ -6,7 +6,7 @@
 // http://pubsubclient.knolleary.net/
 #include <PubSubClient.h>
 
-const int redPin = 5;
+const int redPin = 5; // Use only red for brightness only
 const int greenPin = 4;
 const int bluePin = 2;
 
@@ -17,7 +17,7 @@ const char* mqtt_server = "{MQTT-SERVER}";
 const char* mqtt_username = "{MQTT-USERNAME}";
 const char* mqtt_password = "{MQTT-PASSWORD}";
 
-const char* client_id = "ESPRGBLED"; // Must be unique on the MQTT network
+const char* client_id = "ESPBrightnessLED"; // Must be unique on the MQTT network
 
 // Topics
 const char* light_state_topic = "home/rgb1";
@@ -30,14 +30,14 @@ const int BUFFER_SIZE = JSON_OBJECT_SIZE(8);
 
 // Maintained state for reporting to HA
 byte red = 255;
-byte green = 255;
-byte blue = 255;
+// byte green = 0;
+// byte blue = 0;
 byte brightness = 255;
 
 // Real values to write to the LEDs (ex. including brightness and state)
 byte realRed = 0;
-byte realGreen = 0;
-byte realBlue = 0;
+// byte realGreen = 0;
+// byte realBlue = 0;
 
 bool state_on = false;
 
@@ -47,17 +47,21 @@ long lastLoop = 0;
 int wait = 0;
 bool inFade = false;
 int loopCount = 0;
-int stepR, stepG, stepB;
-int prevR, prevG, prevB;
-int redVal, grnVal, bluVal;
+int stepR; //, stepG, stepB;
+int prevR = 0;
+// int prevG = 0;
+// int prevB = 0;
+int redVal = 0;
+// int grnVal = 0;
+// int bluVal = 0;
 
 WiFiClient espClient;
 PubSubClient client(espClient);
 
 void setup() {
   pinMode(redPin, OUTPUT);
-  pinMode(greenPin, OUTPUT);
-  pinMode(bluePin, OUTPUT);
+  // pinMode(greenPin, OUTPUT);
+  // pinMode(bluePin, OUTPUT);
 
   analogWriteRange(255);
 
@@ -120,13 +124,13 @@ void callback(char* topic, byte* payload, unsigned int length) {
   if (state_on) {
     // Update lights
     realRed = map(red, 0, 255, 0, brightness);
-    realGreen = map(green, 0, 255, 0, brightness);
-    realBlue = map(blue, 0, 255, 0, brightness);
+    // realGreen = map(green, 0, 255, 0, brightness);
+    // realBlue = map(blue, 0, 255, 0, brightness);
   }
   else {
     realRed = 0;
-    realGreen = 0;
-    realBlue = 0;
+    // realGreen = 0;
+    // realBlue = 0;
   }
 
   startFade = true;
@@ -153,11 +157,11 @@ bool processJson(char* message) {
     }
   }
 
-  if (root.containsKey("color")) {
-    red = root["color"]["r"];
-    green = root["color"]["g"];
-    blue = root["color"]["b"];
-  }
+  // if (root.containsKey("color")) {
+  //   red = root["color"]["r"];
+  //   green = root["color"]["g"];
+  //   blue = root["color"]["b"];
+  // }
 
   if (root.containsKey("brightness")) {
     brightness = root["brightness"];
@@ -179,10 +183,10 @@ void sendState() {
   JsonObject& root = jsonBuffer.createObject();
 
   root["state"] = (state_on) ? on_cmd : off_cmd;
-  JsonObject& color = root.createNestedObject("color");
-  color["r"] = red;
-  color["g"] = green;
-  color["b"] = blue;
+  // JsonObject& color = root.createNestedObject("color");
+  // color["r"] = red;
+  // color["g"] = green;
+  // color["b"] = blue;
 
   root["brightness"] = brightness;
 
@@ -210,18 +214,20 @@ void reconnect() {
   }
 }
 
-void setColor(int inR, int inG, int inB) {
+void setLight(int inR) {
   analogWrite(redPin, inR);
-  analogWrite(greenPin, inG);
-  analogWrite(bluePin, inB);
+  // analogWrite(greenPin, inG);
+  // analogWrite(bluePin, inB);
 
-  Serial.println("Setting LEDs:");
-  Serial.print("r: ");
-  Serial.print(inR);
-  Serial.print(", g: ");
-  Serial.print(inG);
-  Serial.print(", b: ");
-  Serial.println(inB);
+  Serial.print("Setting light: ");
+  Serial.println(inR);
+  // Serial.println("Setting LEDs:");
+  // Serial.print("r: ");
+  // Serial.print(inR);
+  // Serial.print(", g: ");
+  // Serial.print(inG);
+  // Serial.print(", b: ");
+  // Serial.println(inB);
 }
 
 void loop() {
@@ -234,22 +240,22 @@ void loop() {
   if (startFade) {
     // If we don't want to fade, skip it.
     if (wait == 0) {
-      setColor(realRed, realGreen, realBlue);
+      setLight(realRed);
       prevR = realRed;
-      prevG = realGreen;
-      prevB = realBlue;
+      // prevG = realGreen;
+      // prevB = realBlue;
 
       redVal = realRed;
-      grnVal = realGreen;
-      bluVal = realBlue;
+      // grnVal = realGreen;
+      // bluVal = realBlue;
 
       startFade = false;
     }
     else {
       loopCount = 0;
       stepR = calculateStep(prevR, realRed);
-      stepG = calculateStep(prevG, realGreen); 
-      stepB = calculateStep(prevB, realBlue);
+      // stepG = calculateStep(prevG, realGreen); 
+      // stepB = calculateStep(prevB, realBlue);
 
       inFade = true;
     }
@@ -263,20 +269,18 @@ void loop() {
         lastLoop = now;
         
         redVal = calculateVal(stepR, redVal, loopCount);
-        grnVal = calculateVal(stepG, grnVal, loopCount);
-        bluVal = calculateVal(stepB, bluVal, loopCount);
+        // grnVal = calculateVal(stepG, grnVal, loopCount);
+        // bluVal = calculateVal(stepB, bluVal, loopCount);
         
-        setColor(redVal, grnVal, bluVal); // Write current values to LED pins
+        setLight(redVal); // Write current values to LED pins
 
-        Serial.print("Loop count: ");
-        Serial.println(loopCount);
         loopCount++;
       }
       else {
         // Update current values for next loop
         prevR = redVal; 
-        prevG = grnVal; 
-        prevB = bluVal;
+        // prevG = grnVal; 
+        // prevB = bluVal;
 
         inFade = false;
       }

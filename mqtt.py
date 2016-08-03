@@ -109,19 +109,21 @@ class MqttLight(Light):
             elif values["state"] == "OFF":
                 self._state = False
 
-            try:
-                r = int(values["color"]["r"])
-                g = int(values["color"]["g"])
-                b = int(values["color"]["b"])
+            if self._rgb is not None:
+                try:
+                    r = int(values["color"]["r"])
+                    g = int(values["color"]["g"])
+                    b = int(values["color"]["b"])
 
-                self._rgb = [r, g, b]
-            except KeyError:
-                pass
+                    self._rgb = [r, g, b]
+                except KeyError:
+                    pass
 
-            try:
-                self._brightness = int(values["brightness"])
-            except KeyError:
-                pass
+            if self._brightness is not None:
+                try:
+                    self._brightness = int(values["brightness"])
+                except KeyError:
+                    pass
 
             self.update_ha_state()
 

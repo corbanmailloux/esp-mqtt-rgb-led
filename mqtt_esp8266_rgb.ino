@@ -49,12 +49,11 @@ bool state_on = false;
 
 // Globals for fade/transitions
 bool startFade = false;
-long lastLoop = 0;
-int wait = 0;
+unsigned long lastLoop = 0;
+int transition_time = 0;
 bool inFade = false;
 int loopCount = 0;
 int stepR, stepG, stepB;
-int prevR, prevG, prevB;
 int redVal, grnVal, bluVal;
 
 WiFiClient espClient;
@@ -139,6 +138,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   }
 
   startFade = true;
+  inFade = false; // Kill the current fade
 
   sendState();
 }
@@ -173,10 +173,10 @@ bool processJson(char* message) {
   }
 
   if (root.containsKey("transition")) {
-    wait = root["transition"];
+    transition_time = root["transition"];
   }
   else {
-    wait = 0;
+    transition_time = 0;
   }
 
   return true;
@@ -242,11 +242,8 @@ void loop() {
 
   if (startFade) {
     // If we don't want to fade, skip it.
-    if (wait == 0) {
+    if (transition_time == 0) {
       setColor(realRed, realGreen, realBlue);
-      prevR = realRed;
-      prevG = realGreen;
-      prevB = realBlue;
 
       redVal = realRed;
       grnVal = realGreen;
@@ -256,9 +253,9 @@ void loop() {
     }
     else {
       loopCount = 0;
-      stepR = calculateStep(prevR, realRed);
-      stepG = calculateStep(prevG, realGreen); 
-      stepB = calculateStep(prevB, realBlue);
+      stepR = calculateStep(redVal, realRed);
+      stepG = calculateStep(grnVal, realGreen); 
+      stepB = calculateStep(bluVal, realBlue);
 
       inFade = true;
     }
@@ -266,8 +263,8 @@ void loop() {
 
   if (inFade) {
     startFade = false;
-    long now = millis();
-    if (now - lastLoop > wait) {
+    unsigned long now = millis();
+    if (now - lastLoop > transition_time) {
       if (loopCount <= 1020) {
         lastLoop = now;
         
@@ -282,11 +279,6 @@ void loop() {
         loopCount++;
       }
       else {
-        // Update current values for next loop
-        prevR = redVal; 
-        prevG = grnVal; 
-        prevB = bluVal;
-
         inFade = false;
       }
     }
@@ -356,45 +348,3 @@ int calculateVal(int step, int val, int i) {
     
     return val;
 }
-
-/* crossFade() converts the percentage colors to a 
-*  0-255 range, then loops 1020 times, checking to see if  
-*  the value needs to be updated each time, then writing
-*  the color values to the correct pins.
-*/
-// void crossFade(int color[3], int wait) {
-//     // Convert to 0-255
-//     // int R = (color[0] * 255) / 100;
-//     // int G = (color[1] * 255) / 100;
-//     // int B = (color[2] * 255) / 100;
-    
-//     int R = color[0];
-//     int G = color[1];
-//     int B = color[2];
-    
-//     // Spark.publish("crossFade", String(R) + "," + String(G) + "," + String(B));
-    
-//     int stepR = calculateStep(prevR, R);
-//     int stepG = calculateStep(prevG, G); 
-//     int stepB = calculateStep(prevB, B);
-
-//     for (int i = 0; i <= 1020; i++) {
-//         if (interruptFade) {
-//           break;
-//         }
-        
-//         redVal = calculateVal(stepR, redVal, i);
-//         grnVal = calculateVal(stepG, grnVal, i);
-//         bluVal = calculateVal(stepB, bluVal, i);
-        
-//         setColor(redVal, grnVal, bluVal); // Write current values to LED pins
-        
-//         delay(wait); // Pause for 'wait' milliseconds before resuming the loop
-//     }
-    
-//     // Update current values for next loop
-//     prevR = redVal; 
-//     prevG = grnVal; 
-//     prevB = bluVal;
-//     delay(hold); // Pause for optional 'wait' milliseconds before resuming the loop
-// }

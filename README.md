@@ -4,7 +4,7 @@ This project adds an easy way to create custom lighting for [Home Assistant](htt
 
 I was frustrated that the built-in MQTT light didn't support transitions (fading between colors/brightnesses), and that it uses multiple separate calls to set the different values (state (on/off), brightness, color), so I decided to make my own version.
 
-By sending a JSON payload (in an MQTT message), Home Assistant can include whichever fields are necessary, reducing the number of round-trips. For example, this is a sample payload including all of the fields:
+By sending a JSON payload (in an MQTT message), Home Assistant can include whichever fields are necessary, reducing the round trips from 3 to 1. For example, this is a sample payload including all of the fields:
 ```json
 {
   "state": "ON",
@@ -20,7 +20,7 @@ By sending a JSON payload (in an MQTT message), Home Assistant can include which
 
 ## Installation/Configuration
 
-To set this system up, you need to install and configure the custom platform in Home Assistant and set up a light to control. This also assumes that you already have Home Assistant set up and running. If not, see the installation guides [here](https://home-assistant.io/getting-started/).
+To set this system up, you need to install and configure the custom component in Home Assistant and set up a light to control. This also assumes that you already have Home Assistant set up and running. If not, see the installation guides [here](https://home-assistant.io/getting-started/).
 
 ### The Home Assistant Side
 1. Place the `mqtt_json.py` file in `{HASS-CONFIG-DIRECTORY}/custom_components/light/`, where `{HASS-CONFIG-DIRECTORY}` is your Home Assistant configuration directory. For a Raspberry Pi All-in-One install, this is `/home/hass/.homeassistant/`.

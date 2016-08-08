@@ -1,3 +1,8 @@
+/*
+ * ESP8266 MQTT Lights for Home Assistant.
+ * See https://github.com/corbanmailloux/esp-mqtt-rgb-led
+ */
+
 // https://github.com/bblanchon/ArduinoJson
 #include <ArduinoJson.h> 
 
@@ -6,9 +11,9 @@
 // http://pubsubclient.knolleary.net/
 #include <PubSubClient.h>
 
-const int redPin = 5; // Use only red for brightness only
-const int greenPin = 4;
-const int bluePin = 2;
+const int redPin = 0; // Use only red for non-RGB
+// const int greenPin = 2;
+// const int bluePin = 3;
 
 const char* ssid = "{WIFI-SSID}";
 const char* password = "{WIFI-PASSWORD}";
@@ -33,13 +38,12 @@ byte red = 255;
 // byte green = 0;
 // byte blue = 0;
 byte brightness = 255;
+bool state_on = false;
 
 // Real values to write to the LEDs (ex. including brightness and state)
 byte realRed = 0;
 // byte realGreen = 0;
 // byte realBlue = 0;
-
-bool state_on = false;
 
 // Globals for fade/transitions
 bool startFade = false;
@@ -65,7 +69,8 @@ void setup() {
 
   analogWriteRange(255);
 
-  Serial.begin(115200);
+  // Uncomment the next line for debugging output
+  // Serial.begin(115200);
   setup_wifi();
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
@@ -232,6 +237,7 @@ void setLight(int inR) {
 
 void loop() {
 
+  // Keep the network connection active
   if (!client.connected()) {
     reconnect();
   }

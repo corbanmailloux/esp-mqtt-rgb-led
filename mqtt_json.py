@@ -1,19 +1,22 @@
 """
-Support for custom MQTT lights. 
-See: https://github.com/corbanmailloux/esp-mqtt-rgb-led
+Support for custom MQTT JSON lights. 
+See https://github.com/corbanmailloux/esp-mqtt-rgb-led
+for the corresponding ESP8266 sample light.
 
-Most of this code is borrowed from the standard MQTT light
+Much of this code is borrowed from the standard MQTT light
 that comes with Home Assistant.
 
-Currently, this file replaces the base MQTT light file.
-Place it in:
+Setup:
+
+Please this file in:
 {HASS-CONFIG-DIRECTORY}/custom_components/light/
 
-Add the following to your configuration.yaml:
+Add the following to your configuration.yaml, setting
+the values appropriately:
 
 light:
-  - platform: mqtt
-    name: mqtt_transition_test
+  - platform: mqtt_json
+    name: mqtt_json_light_1
     state_topic: "home/rgb1"
     command_topic: "home/rgb1/set"
     brightness: true
@@ -23,21 +26,20 @@ light:
 """
 
 import logging
-from functools import partial
-
 import json
-
 import voluptuous as vol
 
 import homeassistant.components.mqtt as mqtt
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS, ATTR_RGB_COLOR, ATTR_TRANSITION, Light)
-from homeassistant.const import CONF_NAME, CONF_OPTIMISTIC
+from homeassistant.const import CONF_NAME, CONF_OPTIMISTIC, CONF_PLATFORM
 from homeassistant.components.mqtt import (
     CONF_STATE_TOPIC, CONF_COMMAND_TOPIC, CONF_QOS, CONF_RETAIN)
 import homeassistant.helpers.config_validation as cv
 
 _LOGGER = logging.getLogger(__name__)
+
+DOMAIN = "mqtt_json"
 
 DEPENDENCIES = ['mqtt']
 
@@ -49,17 +51,22 @@ DEFAULT_RGB = False
 CONF_BRIGHTNESS = 'brightness'
 CONF_RGB = 'rgb'
 
-PLATFORM_SCHEMA = mqtt.MQTT_RW_PLATFORM_SCHEMA.extend({
+# Stealing some of these from the base MQTT configs.
+PLATFORM_SCHEMA = vol.Schema({
+    vol.Required(CONF_PLATFORM): DOMAIN,
+    vol.Optional(CONF_QOS, default=mqtt.DEFAULT_QOS): mqtt._VALID_QOS_SCHEMA,
+    vol.Required(CONF_COMMAND_TOPIC): mqtt.valid_publish_topic,
+    vol.Optional(CONF_RETAIN, default=mqtt.DEFAULT_RETAIN): cv.boolean,
+    vol.Optional(CONF_STATE_TOPIC): mqtt.valid_subscribe_topic,
     vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
     vol.Optional(CONF_OPTIMISTIC, default=DEFAULT_OPTIMISTIC): cv.boolean,
     vol.Optional(CONF_BRIGHTNESS, default=DEFAULT_BRIGHTNESS): cv.boolean,
     vol.Optional(CONF_RGB, default=DEFAULT_RGB): cv.boolean
 })
 
-
 def setup_platform(hass, config, add_devices_callback, discovery_info=None):
     """Add MQTT Light."""
-    add_devices_callback([MqttLight(
+    add_devices_callback([MqttJson(
         hass,
         config[CONF_NAME],
         {
@@ -76,7 +83,7 @@ def setup_platform(hass, config, add_devices_callback, discovery_info=None):
     )])
 
 
-class MqttLight(Light):
+class MqttJson(Light):
     """MQTT light."""
 
     # pylint: disable=too-many-arguments,too-many-instance-attributes

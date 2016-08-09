@@ -1,5 +1,6 @@
 """
-Support for custom MQTT JSON lights. 
+Support for MQTT JSON lights.
+
 See https://github.com/corbanmailloux/esp-mqtt-rgb-led
 for the corresponding ESP8266 sample light.
 
@@ -61,7 +62,8 @@ CONF_FLASH_TIME_LONG = "flash_time_long"
 # Stealing some of these from the base MQTT configs.
 PLATFORM_SCHEMA = vol.Schema({
     vol.Required(CONF_PLATFORM): DOMAIN,
-    vol.Optional(CONF_QOS, default=mqtt.DEFAULT_QOS): mqtt._VALID_QOS_SCHEMA,
+    vol.Optional(CONF_QOS, default=mqtt.DEFAULT_QOS):
+        vol.All(vol.Coerce(int), vol.In([0, 1, 2])),
     vol.Required(CONF_COMMAND_TOPIC): mqtt.valid_publish_topic,
     vol.Optional(CONF_RETAIN, default=mqtt.DEFAULT_RETAIN): cv.boolean,
     vol.Optional(CONF_STATE_TOPIC): mqtt.valid_subscribe_topic,
@@ -69,12 +71,15 @@ PLATFORM_SCHEMA = vol.Schema({
     vol.Optional(CONF_OPTIMISTIC, default=DEFAULT_OPTIMISTIC): cv.boolean,
     vol.Optional(CONF_BRIGHTNESS, default=DEFAULT_BRIGHTNESS): cv.boolean,
     vol.Optional(CONF_RGB, default=DEFAULT_RGB): cv.boolean,
-    vol.Optional(CONF_FLASH_TIME_SHORT, default=DEFAULT_FLASH_TIME_SHORT): cv.positive_int,
-    vol.Optional(CONF_FLASH_TIME_LONG, default=DEFAULT_FLASH_TIME_LONG): cv.positive_int
+    vol.Optional(CONF_FLASH_TIME_SHORT, default=DEFAULT_FLASH_TIME_SHORT):
+        cv.positive_int,
+    vol.Optional(CONF_FLASH_TIME_LONG, default=DEFAULT_FLASH_TIME_LONG):
+        cv.positive_int
 })
 
+
 def setup_platform(hass, config, add_devices_callback, discovery_info=None):
-    """Add MQTT Light."""
+    """Add MQTT JSON Light."""
     add_devices_callback([MqttJson(
         hass,
         config[CONF_NAME],
@@ -97,13 +102,14 @@ def setup_platform(hass, config, add_devices_callback, discovery_info=None):
         }
     )])
 
+
 class MqttJson(Light):
-    """MQTT light."""
+    """MQTT JSON light."""
 
     # pylint: disable=too-many-arguments,too-many-instance-attributes
     def __init__(self, hass, name, topic, qos, retain,
                  optimistic, brightness, rgb, flash_times):
-        """Initialize MQTT light."""
+        """Initialize MQTT JSON light."""
         self._hass = hass
         self._name = name
         self._topic = topic
@@ -134,11 +140,11 @@ class MqttJson(Light):
 
             if self._rgb is not None:
                 try:
-                    r = int(values["color"]["r"])
-                    g = int(values["color"]["g"])
-                    b = int(values["color"]["b"])
+                    red = int(values["color"]["r"])
+                    green = int(values["color"]["g"])
+                    blue = int(values["color"]["b"])
 
-                    self._rgb = [r, g, b]
+                    self._rgb = [red, green, blue]
                 except KeyError:
                     pass
 
@@ -192,8 +198,8 @@ class MqttJson(Light):
 
         if ATTR_RGB_COLOR in kwargs:
             message["color"] = {
-                "r": kwargs[ATTR_RGB_COLOR][0], 
-                "g": kwargs[ATTR_RGB_COLOR][1], 
+                "r": kwargs[ATTR_RGB_COLOR][0],
+                "g": kwargs[ATTR_RGB_COLOR][1],
                 "b": kwargs[ATTR_RGB_COLOR][2]
             }
 
@@ -223,7 +229,7 @@ class MqttJson(Light):
                      json.dumps(message), self._qos, self._retain)
 
         if self._optimistic:
-            # Optimistically assume that switch has changed state.
+            # Optimistically assume that the light has changed state.
             self._state = True
             should_update = True
 
@@ -241,6 +247,6 @@ class MqttJson(Light):
                      json.dumps(message), self._qos, self._retain)
 
         if self._optimistic:
-            # Optimistically assume that switch has changed state.
+            # Optimistically assume that the light has changed state.
             self._state = False
             self.update_ha_state()

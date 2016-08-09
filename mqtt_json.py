@@ -8,7 +8,7 @@ that comes with Home Assistant.
 
 Setup:
 
-Please this file in:
+Place this file in:
 {HASS-CONFIG-DIRECTORY}/custom_components/light/
 
 Add the following to your configuration.yaml, setting
@@ -21,6 +21,8 @@ light:
     command_topic: "home/rgb1/set"
     brightness: true
     rgb: true
+    flash_time_short: 2
+    flash_time_long: 10
     optimistic: false
     qos: 0
 """
@@ -42,15 +44,19 @@ _LOGGER = logging.getLogger(__name__)
 
 DOMAIN = "mqtt_json"
 
-DEPENDENCIES = ['mqtt']
+DEPENDENCIES = ["mqtt"]
 
-DEFAULT_NAME = 'MQTT Light'
+DEFAULT_NAME = "MQTT Light"
 DEFAULT_OPTIMISTIC = False
 DEFAULT_BRIGHTNESS = False
 DEFAULT_RGB = False
+DEFAULT_FLASH_TIME_SHORT = 2
+DEFAULT_FLASH_TIME_LONG = 10
 
-CONF_BRIGHTNESS = 'brightness'
-CONF_RGB = 'rgb'
+CONF_BRIGHTNESS = "brightness"
+CONF_RGB = "rgb"
+CONF_FLASH_TIME_SHORT = "flash_time_short"
+CONF_FLASH_TIME_LONG = "flash_time_long"
 
 # Stealing some of these from the base MQTT configs.
 PLATFORM_SCHEMA = vol.Schema({
@@ -62,7 +68,9 @@ PLATFORM_SCHEMA = vol.Schema({
     vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
     vol.Optional(CONF_OPTIMISTIC, default=DEFAULT_OPTIMISTIC): cv.boolean,
     vol.Optional(CONF_BRIGHTNESS, default=DEFAULT_BRIGHTNESS): cv.boolean,
-    vol.Optional(CONF_RGB, default=DEFAULT_RGB): cv.boolean
+    vol.Optional(CONF_RGB, default=DEFAULT_RGB): cv.boolean,
+    vol.Optional(CONF_FLASH_TIME_SHORT, default=DEFAULT_FLASH_TIME_SHORT): cv.positive_int,
+    vol.Optional(CONF_FLASH_TIME_LONG, default=DEFAULT_FLASH_TIME_LONG): cv.positive_int
 })
 
 def setup_platform(hass, config, add_devices_callback, discovery_info=None):
@@ -80,16 +88,21 @@ def setup_platform(hass, config, add_devices_callback, discovery_info=None):
         config[CONF_RETAIN],
         config[CONF_OPTIMISTIC],
         config[CONF_BRIGHTNESS],
-        config[CONF_RGB]
+        config[CONF_RGB],
+        {
+            key: config.get(key) for key in (
+                CONF_FLASH_TIME_SHORT,
+                CONF_FLASH_TIME_LONG
+            )
+        }
     )])
-
 
 class MqttJson(Light):
     """MQTT light."""
 
     # pylint: disable=too-many-arguments,too-many-instance-attributes
     def __init__(self, hass, name, topic, qos, retain,
-                 optimistic, brightness, rgb):
+                 optimistic, brightness, rgb, flash_times):
         """Initialize MQTT light."""
         self._hass = hass
         self._name = name
@@ -107,6 +120,8 @@ class MqttJson(Light):
             self._rgb = [0, 0, 0]
         else:
             self._rgb = None
+
+        self._flash_times = flash_times
 
         def state_received(topic, payload, qos):
             """A new MQTT message has been received."""
@@ -190,9 +205,9 @@ class MqttJson(Light):
             flash = kwargs.get(ATTR_FLASH)
 
             if flash == FLASH_LONG:
-                message["flash"] = 'long'
+                message["flash"] = self._flash_times[CONF_FLASH_TIME_LONG]
             elif flash == FLASH_SHORT:
-                message["flash"] = 'short'
+                message["flash"] = self._flash_times[CONF_FLASH_TIME_SHORT]
 
         if ATTR_TRANSITION in kwargs:
             message["transition"] = int(kwargs[ATTR_TRANSITION])

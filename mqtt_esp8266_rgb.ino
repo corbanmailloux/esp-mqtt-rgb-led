@@ -4,7 +4,7 @@
  */
 
 // https://github.com/bblanchon/ArduinoJson
-#include <ArduinoJson.h> 
+#include <ArduinoJson.h>
 
 #include <ESP8266WiFi.h>
 
@@ -32,7 +32,7 @@ const char* light_set_topic = "home/rgb1/set";
 const char* on_cmd = "ON";
 const char* off_cmd = "OFF";
 
-const int BUFFER_SIZE = JSON_OBJECT_SIZE(8);
+const int BUFFER_SIZE = JSON_OBJECT_SIZE(10);
 
 // Maintained state for reporting to HA
 byte red = 255;
@@ -45,16 +45,26 @@ byte realRed = 0;
 byte realGreen = 0;
 byte realBlue = 0;
 
-bool state_on = false;
+bool stateOn = false;
 
 // Globals for fade/transitions
 bool startFade = false;
 unsigned long lastLoop = 0;
-int transition_time = 0;
+int transitionTime = 0;
 bool inFade = false;
 int loopCount = 0;
 int stepR, stepG, stepB;
 int redVal, grnVal, bluVal;
+
+// Globals for flash
+bool flash = false;
+bool startFlash = false;
+int flashLength = 0;
+unsigned long flashStartTime = 0;
+byte flashRed = red;
+byte flashGreen = green;
+byte flashBlue = blue;
+byte flashBrightness = brightness;
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -105,6 +115,7 @@ void setup_wifi() {
         "g": 100,
         "b": 100
       },
+      "flash": 2,
       "transition": 5,
       "state": "ON"
     }
@@ -125,7 +136,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     return;
   }
 
-  if (state_on) {
+  if (stateOn) {
     // Update lights
     realRed = map(red, 0, 255, 0, brightness);
     realGreen = map(green, 0, 255, 0, brightness);
@@ -155,28 +166,61 @@ bool processJson(char* message) {
 
   if (root.containsKey("state")) {
     if (strcmp(root["state"], on_cmd) == 0) {
-      state_on = true;
+      stateOn = true;
     }
     else if (strcmp(root["state"], off_cmd) == 0) {
-      state_on = false;
+      stateOn = false;
     }
   }
 
-  if (root.containsKey("color")) {
-    red = root["color"]["r"];
-    green = root["color"]["g"];
-    blue = root["color"]["b"];
-  }
+  // If "flash" is included, treat RGB and brightness differently
+  if (root.containsKey("flash")) {
+    flashLength = (int)root["flash"] * 1000;
 
-  if (root.containsKey("brightness")) {
-    brightness = root["brightness"];
-  }
+    if (root.containsKey("brightness")) {
+      flashBrightness = root["brightness"];
+    }
+    else {
+      flashBrightness = brightness;
+    }
 
-  if (root.containsKey("transition")) {
-    transition_time = root["transition"];
+    if (root.containsKey("color")) {
+      flashRed = root["color"]["r"];
+      flashGreen = root["color"]["g"];
+      flashBlue = root["color"]["b"];
+    }
+    else {
+      flashRed = red;
+      flashGreen = green;
+      flashBlue = blue;
+    }
+
+    flashRed = map(flashRed, 0, 255, 0, flashBrightness);
+    flashGreen = map(flashGreen, 0, 255, 0, flashBrightness);
+    flashBlue = map(flashBlue, 0, 255, 0, flashBrightness);
+
+    flash = true;
+    startFlash = true;
   }
-  else {
-    transition_time = 0;
+  else { // Not flashing
+    flash = false;
+
+    if (root.containsKey("color")) {
+      red = root["color"]["r"];
+      green = root["color"]["g"];
+      blue = root["color"]["b"];
+    }
+
+    if (root.containsKey("brightness")) {
+      brightness = root["brightness"];
+    }
+
+    if (root.containsKey("transition")) {
+      transitionTime = root["transition"];
+    }
+    else {
+      transitionTime = 0;
+    }
   }
 
   return true;
@@ -187,7 +231,7 @@ void sendState() {
 
   JsonObject& root = jsonBuffer.createObject();
 
-  root["state"] = (state_on) ? on_cmd : off_cmd;
+  root["state"] = (stateOn) ? on_cmd : off_cmd;
   JsonObject& color = root.createNestedObject("color");
   color["r"] = red;
   color["g"] = green;
@@ -240,9 +284,32 @@ void loop() {
   }
   client.loop();
 
+  if (flash) {
+    if (startFlash) {
+      startFlash = false;
+      flashStartTime = millis();
+    }
+
+    if ((millis() - flashStartTime) <= flashLength) {
+      if ((millis() - flashStartTime) % 1000 <= 500) {
+        setColor(flashRed, flashGreen, flashBlue);
+      }
+      else {
+        setColor(0, 0, 0);
+        // If you'd prefer the flashing to happen "on top of"
+        // the current color, uncomment the next line.
+        // setColor(realRed, realGreen, realBlue);
+      }
+    }
+    else {
+      flash = false;
+      setColor(realRed, realGreen, realBlue);
+    }
+  }
+
   if (startFade) {
     // If we don't want to fade, skip it.
-    if (transition_time == 0) {
+    if (transitionTime == 0) {
       setColor(realRed, realGreen, realBlue);
 
       redVal = realRed;
@@ -254,7 +321,7 @@ void loop() {
     else {
       loopCount = 0;
       stepR = calculateStep(redVal, realRed);
-      stepG = calculateStep(grnVal, realGreen); 
+      stepG = calculateStep(grnVal, realGreen);
       stepB = calculateStep(bluVal, realBlue);
 
       inFade = true;
@@ -264,7 +331,7 @@ void loop() {
   if (inFade) {
     startFade = false;
     unsigned long now = millis();
-    if (now - lastLoop > transition_time) {
+    if (now - lastLoop > transitionTime) {
       if (loopCount <= 1020) {
         lastLoop = now;
         
@@ -331,17 +398,17 @@ int calculateStep(int prevValue, int endValue) {
 int calculateVal(int step, int val, int i) {
     if ((step) && i % step == 0) { // If step is non-zero and its time to change a value,
         if (step > 0) {              //   increment the value if step is positive...
-            val += 1;           
-        } 
+            val += 1;
+        }
         else if (step < 0) {         //   ...or decrement it if step is negative
             val -= 1;
-        } 
+        }
     }
     
     // Defensive driving: make sure val stays in the range 0-255
     if (val > 255) {
         val = 255;
-    } 
+    }
     else if (val < 0) {
         val = 0;
     }

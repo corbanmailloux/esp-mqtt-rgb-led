@@ -1,31 +1,8 @@
 """
 Support for MQTT JSON lights.
 
-See https://github.com/corbanmailloux/esp-mqtt-rgb-led
-for the corresponding ESP8266 sample light.
-
-Much of this code is borrowed from the standard MQTT light
-that comes with Home Assistant.
-
-Setup:
-
-Place this file in:
-{HASS-CONFIG-DIRECTORY}/custom_components/light/
-
-Add the following to your configuration.yaml, setting
-the values appropriately:
-
-light:
-  - platform: mqtt_json
-    name: mqtt_json_light_1
-    state_topic: "home/rgb1"
-    command_topic: "home/rgb1/set"
-    brightness: true
-    rgb: true
-    flash_time_short: 2
-    flash_time_long: 10
-    optimistic: false
-    qos: 0
+For more details about this platform, please refer to the documentation at
+https://home-assistant.io/components/light.mqtt_json/
 """
 
 import logging
@@ -47,7 +24,7 @@ DOMAIN = "mqtt_json"
 
 DEPENDENCIES = ["mqtt"]
 
-DEFAULT_NAME = "MQTT Light"
+DEFAULT_NAME = "MQTT JSON Light"
 DEFAULT_OPTIMISTIC = False
 DEFAULT_BRIGHTNESS = False
 DEFAULT_RGB = False

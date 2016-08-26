@@ -4,14 +4,15 @@
  */
 
 // https://github.com/bblanchon/ArduinoJson
-#include <ArduinoJson.h> 
+#include <ArduinoJson.h>
 
 #include <ESP8266WiFi.h>
 
 // http://pubsubclient.knolleary.net/
 #include <PubSubClient.h>
 
-const int redPin = 0; // Use only red for non-RGB
+const int redPin = 0;
+const int txPin = 1; // On-board blue LED
 // const int greenPin = 2;
 // const int bluePin = 3;
 
@@ -35,29 +36,35 @@ const int BUFFER_SIZE = JSON_OBJECT_SIZE(8);
 
 // Maintained state for reporting to HA
 byte red = 255;
-// byte green = 0;
-// byte blue = 0;
+// byte green = 255;
+// byte blue = 255;
 byte brightness = 255;
-bool state_on = false;
 
 // Real values to write to the LEDs (ex. including brightness and state)
 byte realRed = 0;
 // byte realGreen = 0;
 // byte realBlue = 0;
 
+bool stateOn = false;
+
 // Globals for fade/transitions
 bool startFade = false;
-long lastLoop = 0;
-int wait = 0;
+unsigned long lastLoop = 0;
+int transitionTime = 0;
 bool inFade = false;
 int loopCount = 0;
 int stepR; //, stepG, stepB;
-int prevR = 0;
-// int prevG = 0;
-// int prevB = 0;
-int redVal = 0;
-// int grnVal = 0;
-// int bluVal = 0;
+int redVal; //, grnVal, bluVal;
+
+// Globals for flash
+bool flash = false;
+bool startFlash = false;
+int flashLength = 0;
+unsigned long flashStartTime = 0;
+byte flashRed = red;
+// byte flashGreen = green;
+// byte flashBlue = blue;
+byte flashBrightness = brightness;
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -67,9 +74,11 @@ void setup() {
   // pinMode(greenPin, OUTPUT);
   // pinMode(bluePin, OUTPUT);
 
+  pinMode(txPin, OUTPUT);
+  digitalWrite(txPin, HIGH); // Turn off the on-board LED
+
   analogWriteRange(255);
 
-  // Uncomment the next line for debugging output
   // Serial.begin(115200);
   setup_wifi();
   client.setServer(mqtt_server, 1883);
@@ -101,11 +110,7 @@ void setup_wifi() {
   SAMPLE PAYLOAD:
     {
       "brightness": 120,
-      "color": {
-        "r": 255,
-        "g": 100,
-        "b": 100
-      },
+      "flash": 2,
       "transition": 5,
       "state": "ON"
     }
@@ -126,7 +131,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     return;
   }
 
-  if (state_on) {
+  if (stateOn) {
     // Update lights
     realRed = map(red, 0, 255, 0, brightness);
     // realGreen = map(green, 0, 255, 0, brightness);
@@ -139,6 +144,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   }
 
   startFade = true;
+  inFade = false; // Kill the current fade
 
   sendState();
 }
@@ -155,28 +161,61 @@ bool processJson(char* message) {
 
   if (root.containsKey("state")) {
     if (strcmp(root["state"], on_cmd) == 0) {
-      state_on = true;
+      stateOn = true;
     }
     else if (strcmp(root["state"], off_cmd) == 0) {
-      state_on = false;
+      stateOn = false;
     }
   }
 
-  // if (root.containsKey("color")) {
-  //   red = root["color"]["r"];
-  //   green = root["color"]["g"];
-  //   blue = root["color"]["b"];
-  // }
+  // If "flash" is included, treat RGB and brightness differently
+  if (root.containsKey("flash")) {
+    flashLength = (int)root["flash"] * 1000;
 
-  if (root.containsKey("brightness")) {
-    brightness = root["brightness"];
-  }
+    if (root.containsKey("brightness")) {
+      flashBrightness = root["brightness"];
+    }
+    else {
+      flashBrightness = brightness;
+    }
 
-  if (root.containsKey("transition")) {
-    wait = root["transition"];
+    // if (root.containsKey("color")) {
+    //   flashRed = root["color"]["r"];
+    //   flashGreen = root["color"]["g"];
+    //   flashBlue = root["color"]["b"];
+    // }
+    // else {
+    //   flashRed = red;
+    //   flashGreen = green;
+    //   flashBlue = blue;
+    // }
+
+    flashRed = map(flashRed, 0, 255, 0, flashBrightness);
+    // flashGreen = map(flashGreen, 0, 255, 0, flashBrightness);
+    // flashBlue = map(flashBlue, 0, 255, 0, flashBrightness);
+
+    flash = true;
+    startFlash = true;
   }
-  else {
-    wait = 0;
+  else { // Not flashing
+    flash = false;
+
+    // if (root.containsKey("color")) {
+    //   red = root["color"]["r"];
+    //   green = root["color"]["g"];
+    //   blue = root["color"]["b"];
+    // }
+
+    if (root.containsKey("brightness")) {
+      brightness = root["brightness"];
+    }
+
+    if (root.containsKey("transition")) {
+      transitionTime = root["transition"];
+    }
+    else {
+      transitionTime = 0;
+    }
   }
 
   return true;
@@ -187,7 +226,7 @@ void sendState() {
 
   JsonObject& root = jsonBuffer.createObject();
 
-  root["state"] = (state_on) ? on_cmd : off_cmd;
+  root["state"] = (stateOn) ? on_cmd : off_cmd;
   // JsonObject& color = root.createNestedObject("color");
   // color["r"] = red;
   // color["g"] = green;
@@ -219,16 +258,14 @@ void reconnect() {
   }
 }
 
-void setLight(int inR) {
+void setColor(int inR) { //, int inG, int inB) {
   analogWrite(redPin, inR);
   // analogWrite(greenPin, inG);
   // analogWrite(bluePin, inB);
 
-  Serial.print("Setting light: ");
+  Serial.println("Setting LEDs:");
+  Serial.print("r: ");
   Serial.println(inR);
-  // Serial.println("Setting LEDs:");
-  // Serial.print("r: ");
-  // Serial.print(inR);
   // Serial.print(", g: ");
   // Serial.print(inG);
   // Serial.print(", b: ");
@@ -237,19 +274,38 @@ void setLight(int inR) {
 
 void loop() {
 
-  // Keep the network connection active
   if (!client.connected()) {
     reconnect();
   }
   client.loop();
 
+  if (flash) {
+    if (startFlash) {
+      startFlash = false;
+      flashStartTime = millis();
+    }
+
+    if ((millis() - flashStartTime) <= flashLength) {
+      if ((millis() - flashStartTime) % 1000 <= 500) {
+        setColor(flashRed); //, flashGreen, flashBlue);
+      }
+      else {
+        setColor(0); //, 0, 0);
+        // If you'd prefer the flashing to happen "on top of"
+        // the current color, uncomment the next line.
+        // setColor(realRed, realGreen, realBlue);
+      }
+    }
+    else {
+      flash = false;
+      setColor(realRed); //, realGreen, realBlue);
+    }
+  }
+
   if (startFade) {
     // If we don't want to fade, skip it.
-    if (wait == 0) {
-      setLight(realRed);
-      prevR = realRed;
-      // prevG = realGreen;
-      // prevB = realBlue;
+    if (transitionTime == 0) {
+      setColor(realRed); //, realGreen, realBlue);
 
       redVal = realRed;
       // grnVal = realGreen;
@@ -259,9 +315,9 @@ void loop() {
     }
     else {
       loopCount = 0;
-      stepR = calculateStep(prevR, realRed);
-      // stepG = calculateStep(prevG, realGreen); 
-      // stepB = calculateStep(prevB, realBlue);
+      stepR = calculateStep(redVal, realRed);
+      // stepG = calculateStep(grnVal, realGreen);
+      // stepB = calculateStep(bluVal, realBlue);
 
       inFade = true;
     }
@@ -269,8 +325,8 @@ void loop() {
 
   if (inFade) {
     startFade = false;
-    long now = millis();
-    if (now - lastLoop > wait) {
+    unsigned long now = millis();
+    if (now - lastLoop > transitionTime) {
       if (loopCount <= 1020) {
         lastLoop = now;
         
@@ -278,16 +334,13 @@ void loop() {
         // grnVal = calculateVal(stepG, grnVal, loopCount);
         // bluVal = calculateVal(stepB, bluVal, loopCount);
         
-        setLight(redVal); // Write current values to LED pins
+        setColor(redVal); //, grnVal, bluVal); // Write current values to LED pins
 
+        Serial.print("Loop count: ");
+        Serial.println(loopCount);
         loopCount++;
       }
       else {
-        // Update current values for next loop
-        prevR = redVal; 
-        // prevG = grnVal; 
-        // prevB = bluVal;
-
         inFade = false;
       }
     }
@@ -340,63 +393,20 @@ int calculateStep(int prevValue, int endValue) {
 int calculateVal(int step, int val, int i) {
     if ((step) && i % step == 0) { // If step is non-zero and its time to change a value,
         if (step > 0) {              //   increment the value if step is positive...
-            val += 1;           
-        } 
+            val += 1;
+        }
         else if (step < 0) {         //   ...or decrement it if step is negative
             val -= 1;
-        } 
+        }
     }
     
     // Defensive driving: make sure val stays in the range 0-255
     if (val > 255) {
         val = 255;
-    } 
+    }
     else if (val < 0) {
         val = 0;
     }
     
     return val;
 }
-
-/* crossFade() converts the percentage colors to a 
-*  0-255 range, then loops 1020 times, checking to see if  
-*  the value needs to be updated each time, then writing
-*  the color values to the correct pins.
-*/
-// void crossFade(int color[3], int wait) {
-//     // Convert to 0-255
-//     // int R = (color[0] * 255) / 100;
-//     // int G = (color[1] * 255) / 100;
-//     // int B = (color[2] * 255) / 100;
-    
-//     int R = color[0];
-//     int G = color[1];
-//     int B = color[2];
-    
-//     // Spark.publish("crossFade", String(R) + "," + String(G) + "," + String(B));
-    
-//     int stepR = calculateStep(prevR, R);
-//     int stepG = calculateStep(prevG, G); 
-//     int stepB = calculateStep(prevB, B);
-
-//     for (int i = 0; i <= 1020; i++) {
-//         if (interruptFade) {
-//           break;
-//         }
-        
-//         redVal = calculateVal(stepR, redVal, i);
-//         grnVal = calculateVal(stepG, grnVal, i);
-//         bluVal = calculateVal(stepB, bluVal, i);
-        
-//         setColor(redVal, grnVal, bluVal); // Write current values to LED pins
-        
-//         delay(wait); // Pause for 'wait' milliseconds before resuming the loop
-//     }
-    
-//     // Update current values for next loop
-//     prevR = redVal; 
-//     prevG = grnVal; 
-//     prevB = bluVal;
-//     delay(hold); // Pause for optional 'wait' milliseconds before resuming the loop
-// }
-

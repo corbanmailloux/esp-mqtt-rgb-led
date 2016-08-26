@@ -26,8 +26,8 @@ const char* mqtt_password = "{MQTT-PASSWORD}";
 const char* client_id = "ESPBrightnessLED"; // Must be unique on the MQTT network
 
 // Topics
-const char* light_state_topic = "home/rgb1";
-const char* light_set_topic = "home/rgb1/set";
+const char* light_state_topic = "home/brightness1";
+const char* light_set_topic = "home/brightness1/set";
 
 const char* on_cmd = "ON";
 const char* off_cmd = "OFF";
@@ -264,7 +264,7 @@ void setColor(int inR) { //, int inG, int inB) {
   // analogWrite(bluePin, inB);
 
   Serial.println("Setting LEDs:");
-  Serial.print("r: ");
+  // Serial.print("r: ");
   Serial.println(inR);
   // Serial.print(", g: ");
   // Serial.print(inG);

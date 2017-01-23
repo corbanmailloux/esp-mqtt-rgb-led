@@ -11,10 +11,8 @@
 // http://pubsubclient.knolleary.net/
 #include <PubSubClient.h>
 
-const int redPin = 0;
-const int txPin = 1; // On-board blue LED
-const int greenPin = 2;
-const int bluePin = 3;
+// https://github.com/FastLED/FastLED
+#include <FastLED.h>
 
 const char* ssid = "{WIFI-SSID}";
 const char* password = "{WIFI-PASSWORD}";
@@ -22,6 +20,8 @@ const char* password = "{WIFI-PASSWORD}";
 const char* mqtt_server = "{MQTT-SERVER}";
 const char* mqtt_username = "{MQTT-USERNAME}";
 const char* mqtt_password = "{MQTT-PASSWORD}";
+//Port not needed if you are using your own, you can change this if you are using a service like cloudmqtt
+const int mqtt_port = 1883;
 
 const char* client_id = "ESPRGBLED"; // Must be unique on the MQTT network
 
@@ -39,6 +39,17 @@ byte red = 255;
 byte green = 255;
 byte blue = 255;
 byte brightness = 255;
+
+//Your amount of LEDs to be wrote, and their configuration for FastLED
+//
+#define NUM_LEDS    12
+#define DATA_PIN    2
+//#define CLOCK_PIN 5
+#define CHIPSET     WS2812B
+#define COLOR_ORDER GRB
+
+//Onboard blue led
+const int txPin = 1;
 
 // Real values to write to the LEDs (ex. including brightness and state)
 byte realRed = 0;
@@ -68,20 +79,17 @@ byte flashBrightness = brightness;
 
 WiFiClient espClient;
 PubSubClient client(espClient);
+CRGB leds[NUM_LEDS];
 
 void setup() {
-  pinMode(redPin, OUTPUT);
-  pinMode(greenPin, OUTPUT);
-  pinMode(bluePin, OUTPUT);
+  FastLED.addLeds<CHIPSET, DATA_PIN, COLOR_ORDER>(leds, NUM_LEDS);
+  Serial.begin(115200);
 
   pinMode(txPin, OUTPUT);
-  digitalWrite(txPin, HIGH); // Turn off the on-board LED
-
-  analogWriteRange(255);
-
-  // Serial.begin(115200);
+  digitalWrite(txPin, HIGH);
+  
   setup_wifi();
-  client.setServer(mqtt_server, 1883);
+  client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
 }
 
@@ -264,9 +272,12 @@ void reconnect() {
 }
 
 void setColor(int inR, int inG, int inB) {
-  analogWrite(redPin, inR);
-  analogWrite(greenPin, inG);
-  analogWrite(bluePin, inB);
+  for(int i = 0; i < NUM_LEDS; i++) {
+        leds[i].red   = inR;
+        leds[i].green = inG;
+        leds[i].blue  = inB;
+  }
+  FastLED.show();
 
   Serial.println("Setting LEDs:");
   Serial.print("r: ");

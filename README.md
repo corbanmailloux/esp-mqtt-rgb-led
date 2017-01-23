@@ -1,4 +1,4 @@
-# ESP8622 MQTT RGB LEDs Using JSON for Home Assistant
+# NodeMCU v3 MQTT RGB LEDs Using JSON for Home Assistant
 
 This project is primarliy a fork of [corbanmailloux](https://home-assistant.io/components/light.mqtt_json/)'s repository [esp-mqtt-rgb-led](https://github.com/corbanmailloux/esp-mqtt-rgb-led) with a means of controlling LED Strips or neopixels.
 

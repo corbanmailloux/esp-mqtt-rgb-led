@@ -45,6 +45,11 @@ You'll need an ESP set up to work with the Arduino IDE. This needs to be added t
 
 
 #### Wiring
-When wiring to your nodemcu you will want to have a data pin, +5v and ground. If running a small amount of LEDs you can run directly from the board itself provided your microusb power supply has sufficient Amperage. If not then connect ground and 5v to a proper power supply and then conenct it to your nodemcu.
+With v3 of the nodemcu the RSV pin has been changed to be 5v, we can use this to power the WS2812B directly. Watch out because I don't believe that pin has voltage regulation to prevent a surge.
 
-![RGB Wiring](https://raw.githubusercontent.com/corbanmailloux/esp-mqtt-rgb-led/master/ESP%20RGB%20LED_bb.png)
+![RGB No Barrel Wiring](https://github.com/JammyDodger231/esp-mqtt-rgb-led/raw/master/LightNoBarrel_bb.png)
+
+We can also wire it with a barrel jack and power both the node and the light strip with common positive and negative's BOTH MUST BE 5V COMPATIBLE 
+
+![RGB With Barrel Wiring](https://github.com/JammyDodger231/esp-mqtt-rgb-led/blob/master/LightWithBarrel_bb.png?raw=true)
+

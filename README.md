@@ -43,6 +43,8 @@ You'll need an ESP set up to work with the Arduino IDE. This needs to be added t
 7. Set `light_state_topic` and `light_command_topic` to match the values you put in your `configuration.yaml`.
 8. Upload to your nodemcu board after selecting "NodeMCU 1.0".
 
+### Future Changes
+As described in [this adafruit tutorial](https://learn.adafruit.com/adafruit-neopixel-uberguide/power) they say that their LED manufacturer recommends using 70% of the 5v required. The best way to do this with a NodeMCU would be to use a logic level shifter for 3.3v to 5v
 
 #### Wiring
 With v3 of the nodemcu the RSV pin has been changed to be 5v, we can use this to power the WS2812B directly. Watch out because I don't believe that pin has voltage regulation to prevent a surge.

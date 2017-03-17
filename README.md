@@ -43,11 +43,12 @@ To set this system up, you need to configure the [MQTT JSON light](https://home-
 I'm using ESP8266-01 microcontrollers for my lights because they are so cheap and small. The downside of the size and price is that programming them can be a bit of a hassle. There are many sites that go into detail, so I won't do it here. You'll need an ESP set up to work with the Arduino IDE. See the readme [here](https://github.com/esp8266/Arduino) for instructions.
 
 1. Using the Library Manager in the Arduino IDE, install [ArduinoJSON](https://github.com/bblanchon/ArduinoJson/) and [PubSubClient](http://pubsubclient.knolleary.net/). You can find the Library Manager in the "Sketch" menu under "Include Library" -> "Manage Libraries..."
-2. Open the appropriate `.ino` file. For an RGB light, use `mqtt_esp8266_rgb.ino`. For a light that only supports brightness, use `mqtt_esp8266_brightness.ino`.
-3. Set the pin numbers, WiFi SSID and password, MQTT server, MQTT username, and MQTT password to appropriate values.
-4. Set the `client_id` variable to a unique value for your network.
-5. Set `light_state_topic` and `light_command_topic` to match the values you put in your `configuration.yaml`.
-6. Upload to an ESP with the correct connections.
+2. Open the appropriate folder for your lights. For an RGB light, use `mqtt_esp8266_rgb`. For a light that only supports brightness, use `mqtt_esp8266_brightness`.
+3. Update the `config-sample.h` file with your settings for pin numbers, WiFi settings, and MQTT settings.
+4. Ensure that the `CONFIG_MQTT_CLIENT_ID` setting is a unique value for your network.
+5. Set `CONFIG_MQTT_TOPIC_STATE` and `CONFIG_MQTT_TOPIC_SET` to match the values you put in your `configuration.yaml`.
+6. Save the configuration file as `config.h`.
+7. Open the `.ino` file in the Arduino IDE and upload to an ESP with the correct connections.
 
 
 #### Wiring

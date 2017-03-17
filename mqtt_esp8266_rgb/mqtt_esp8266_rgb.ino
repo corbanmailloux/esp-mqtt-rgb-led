@@ -1,7 +1,13 @@
 /*
  * ESP8266 MQTT Lights for Home Assistant.
+ *
+ * This file is for RGB (red, green, and blue) lights.
+ * 
  * See https://github.com/corbanmailloux/esp-mqtt-rgb-led
  */
+
+// Set configuration options for pins, WiFi, and MQTT in the following file:
+#include "config.h"
 
 // https://github.com/bblanchon/ArduinoJson
 #include <ArduinoJson.h>
@@ -11,26 +17,25 @@
 // http://pubsubclient.knolleary.net/
 #include <PubSubClient.h>
 
-const int redPin = 0;
+const int redPin = CONFIG_PIN_RED;
 const int txPin = 1; // On-board blue LED
-const int greenPin = 2;
-const int bluePin = 3;
+const int greenPin = CONFIG_PIN_GREEN;
+const int bluePin = CONFIG_PIN_BLUE;
 
-const char* ssid = "{WIFI-SSID}";
-const char* password = "{WIFI-PASSWORD}";
+const char* ssid = CONFIG_WIFI_SSID;
+const char* password = CONFIG_WIFI_PASS;
 
-const char* mqtt_server = "{MQTT-SERVER}";
-const char* mqtt_username = "{MQTT-USERNAME}";
-const char* mqtt_password = "{MQTT-PASSWORD}";
-
-const char* client_id = "ESPRGBLED"; // Must be unique on the MQTT network
+const char* mqtt_server = CONFIG_MQTT_HOST;
+const char* mqtt_username = CONFIG_MQTT_USER;
+const char* mqtt_password = CONFIG_MQTT_PASS;
+const char* client_id = CONFIG_MQTT_CLIENT_ID;
 
 // Topics
-const char* light_state_topic = "home/rgb1";
-const char* light_set_topic = "home/rgb1/set";
+const char* light_state_topic = CONFIG_MQTT_TOPIC_STATE;
+const char* light_set_topic = CONFIG_MQTT_TOPIC_SET;
 
-const char* on_cmd = "ON";
-const char* off_cmd = "OFF";
+const char* on_cmd = CONFIG_MQTT_PAYLOAD_ON;
+const char* off_cmd = CONFIG_MQTT_PAYLOAD_OFF;
 
 const int BUFFER_SIZE = JSON_OBJECT_SIZE(10);
 

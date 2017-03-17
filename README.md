@@ -27,7 +27,7 @@ To set this system up, you need to configure the [MQTT JSON light](https://home-
 
     ```yaml
     light:
-      + platform: mqtt_json
+      - platform: mqtt_json
         name: mqtt_json_light_1
         state_topic: "home/rgb1"
         command_topic: "home/rgb1/set"

@@ -36,7 +36,7 @@ To set this system up, you need to configure the [MQTT JSON light](https://home-
         optimistic: false
         qos: 0
         effect: true
-        effect_list: [flash]
+        effect_list: [colorfade_slow, colorfade_fast, flash]
     ```
 2. Set the `name`, `state_topic`, and `command_topic` to values that make sense for you.
 3. Restart Home Assistant. Depending on how you installed it, the process differs. For a Raspberry Pi All-in-One install, use `sudo systemctl restart home-assistant.service` (or just restart the Pi).

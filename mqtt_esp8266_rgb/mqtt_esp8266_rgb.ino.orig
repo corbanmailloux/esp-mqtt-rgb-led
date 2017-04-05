@@ -74,8 +74,8 @@ byte flashBrightness = brightness;
 // Globals for colorfade
 bool colorfade = false;
 int currentColor = 0;
-const byte colors[][3] = {{255,0,0},{0,255,0},{0,0,255},{255,80,0},{163,0,255},{0,255,255},{255,255,0}};
-const int numColors = 7;
+const byte colors[][3] = {{255,0,0},{0,255,0},{0,0,255}};
+const int numColors = 3;
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -90,7 +90,11 @@ void setup() {
 
   analogWriteRange(255);
 
-  // Serial.begin(115200);
+<<<<<<< Updated upstream
+  //Serial.begin(115200);
+=======
+  Serial.begin(115200);
+>>>>>>> Stashed changes
   setup_wifi();
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
@@ -218,27 +222,19 @@ bool processJson(char* message) {
     flashBlue = map(flashBlue, 0, 255, 0, flashBrightness);
 
     flash = true;
+    colorfade = false;
     startFlash = true;
   }
-  else if (root.containsKey("effect") && 
-      (strcmp(root["effect"], "colorfade_slow") == 0 || strcmp(root["effect"], "colorfade_fast") == 0)) {
+  else if (root.containsKey("effect") && strcmp(root["effect"], "colorfade") == 0) {
     flash = false;
     colorfade = true;
     currentColor = 0;
-    if (strcmp(root["effect"], "colorfade_slow") == 0) {
-      transitionTime = CONFIG_COLORFADE_TIME_SLOW;
-    } else {
-      transitionTime = CONFIG_COLORFADE_TIME_FAST;
-    }
-  } else if (colorfade && !root.containsKey("color") && root.containsKey("brightness")) {
-    // Adjust brightness during colorfade
-    // (will be applied when fading to the next color)
-    brightness = root["brightness"];
+    transitionTime = 10;
   }
   else { // No effect
     flash = false;
     colorfade = false;
- 
+
     if (root.containsKey("color")) {
       red = root["color"]["r"];
       green = root["color"]["g"];
@@ -273,15 +269,7 @@ void sendState() {
 
   root["brightness"] = brightness;
 
-  if (colorfade) {
-    if (transitionTime == CONFIG_COLORFADE_TIME_SLOW) {
-      root["effect"] = "colorfade_slow";
-    } else {
-      root["effect"] = "colorfade_fast";
-    }
-  } else {
-    root["effect"] = "null";
-  }
+  root["effect"] = (colorfade) ? "colorfade" : "null";
 
   char buffer[root.measureLength() + 1];
   root.printTo(buffer, sizeof(buffer));
@@ -297,7 +285,6 @@ void reconnect() {
     if (client.connect(client_id, mqtt_username, mqtt_password)) {
       Serial.println("connected");
       client.subscribe(light_set_topic);
-      sendState();
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -313,13 +300,13 @@ void setColor(int inR, int inG, int inB) {
   analogWrite(greenPin, inG);
   analogWrite(bluePin, inB);
 
-  Serial.println("Setting LEDs:");
+  /*Serial.println("Setting LEDs:");
   Serial.print("r: ");
   Serial.print(inR);
   Serial.print(", g: ");
   Serial.print(inG);
   Serial.print(", b: ");
-  Serial.println(inB);
+  Serial.println(inB);*/
 }
 
 void loop() {

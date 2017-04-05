@@ -84,7 +84,7 @@ void setup() {
 
   analogWriteRange(255);
 
-  // Serial.begin(115200);
+  //Serial.begin(115200);
   setup_wifi();
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
@@ -180,8 +180,14 @@ bool processJson(char* message) {
   }
 
   // If "flash" is included, treat RGB and brightness differently
-  if (root.containsKey("flash")) {
-    flashLength = (int)root["flash"] * 1000;
+  if (root.containsKey("flash") || 
+       (root.containsKey("effect") && strcmp(root["effect"], "flash") == 0)) {
+    
+    if (root.containsKey("flash")) {
+      flashLength = (int)root["flash"] * 1000;
+    } else {
+      flashLength = CONFIG_DEFAULT_FLASH_LENGTH * 1000;
+    }
 
     if (root.containsKey("brightness")) {
       flashBrightness = root["brightness"];

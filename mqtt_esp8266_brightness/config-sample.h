@@ -25,3 +25,8 @@
 
 #define CONFIG_MQTT_PAYLOAD_ON "ON"
 #define CONFIG_MQTT_PAYLOAD_OFF "OFF"
+
+// Miscellaneous
+// How often should the light flash if no value was given?
+#define CONFIG_DEFAULT_FLASH_LENGTH 2
+

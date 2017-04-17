@@ -2,7 +2,7 @@
  * ESP8266 MQTT Lights for Home Assistant.
  *
  * This file is for RGB (red, green, and blue) lights.
- * 
+ *
  * See https://github.com/corbanmailloux/esp-mqtt-rgb-led
  */
 
@@ -38,6 +38,24 @@ const char* on_cmd = CONFIG_MQTT_PAYLOAD_ON;
 const char* off_cmd = CONFIG_MQTT_PAYLOAD_OFF;
 
 const int BUFFER_SIZE = JSON_OBJECT_SIZE(10);
+
+const uint8_t PROGMEM gamma8[] = {
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  1,  1,  1,
+    1,  1,  1,  1,  1,  1,  1,  1,  1,  2,  2,  2,  2,  2,  2,  2,
+    2,  3,  3,  3,  3,  3,  3,  3,  4,  4,  4,  4,  4,  5,  5,  5,
+    5,  6,  6,  6,  6,  7,  7,  7,  7,  8,  8,  8,  9,  9,  9, 10,
+   10, 10, 11, 11, 11, 12, 12, 13, 13, 13, 14, 14, 15, 15, 16, 16,
+   17, 17, 18, 18, 19, 19, 20, 20, 21, 21, 22, 22, 23, 24, 24, 25,
+   25, 26, 27, 27, 28, 29, 29, 30, 31, 32, 32, 33, 34, 35, 35, 36,
+   37, 38, 39, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 50,
+   51, 52, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 66, 67, 68,
+   69, 70, 72, 73, 74, 75, 77, 78, 79, 81, 82, 83, 85, 86, 87, 89,
+   90, 92, 93, 95, 96, 98, 99,101,102,104,105,107,109,110,112,114,
+  115,117,119,120,122,124,126,127,129,131,133,135,137,138,140,142,
+  144,146,148,150,152,154,156,158,160,162,164,167,169,171,173,175,
+  177,180,182,184,186,189,191,193,196,198,200,203,205,208,210,213,
+  215,218,220,223,225,228,231,233,236,239,241,244,247,249,252,255 };
 
 // Maintained state for reporting to HA
 byte red = 255;
@@ -270,9 +288,9 @@ void reconnect() {
 }
 
 void setColor(int inR, int inG, int inB) {
-  analogWrite(redPin, inR);
-  analogWrite(greenPin, inG);
-  analogWrite(bluePin, inB);
+  analogWrite(redPin, pgm_read_byte(&gamma8[inR]));
+  analogWrite(greenPin, pgm_read_byte(&gamma8[inG]));
+  analogWrite(bluePin, pgm_read_byte(&gamma8[inB]));
 
   Serial.println("Setting LEDs:");
   Serial.print("r: ");
@@ -340,11 +358,11 @@ void loop() {
     if (now - lastLoop > transitionTime) {
       if (loopCount <= 1020) {
         lastLoop = now;
-        
+
         redVal = calculateVal(stepR, redVal, loopCount);
         grnVal = calculateVal(stepG, grnVal, loopCount);
         bluVal = calculateVal(stepB, bluVal, loopCount);
-        
+
         setColor(redVal, grnVal, bluVal); // Write current values to LED pins
 
         Serial.print("Loop count: ");
@@ -360,45 +378,45 @@ void loop() {
 
 // From https://www.arduino.cc/en/Tutorial/ColorCrossfader
 /* BELOW THIS LINE IS THE MATH -- YOU SHOULDN'T NEED TO CHANGE THIS FOR THE BASICS
-* 
+*
 * The program works like this:
-* Imagine a crossfade that moves the red LED from 0-10, 
+* Imagine a crossfade that moves the red LED from 0-10,
 *   the green from 0-5, and the blue from 10 to 7, in
 *   ten steps.
-*   We'd want to count the 10 steps and increase or 
+*   We'd want to count the 10 steps and increase or
 *   decrease color values in evenly stepped increments.
 *   Imagine a + indicates raising a value by 1, and a -
 *   equals lowering it. Our 10 step fade would look like:
-* 
+*
 *   1 2 3 4 5 6 7 8 9 10
 * R + + + + + + + + + +
 * G   +   +   +   +   +
 * B     -     -     -
-* 
-* The red rises from 0 to 10 in ten steps, the green from 
+*
+* The red rises from 0 to 10 in ten steps, the green from
 * 0-5 in 5 steps, and the blue falls from 10 to 7 in three steps.
-* 
-* In the real program, the color percentages are converted to 
+*
+* In the real program, the color percentages are converted to
 * 0-255 values, and there are 1020 steps (255*4).
-* 
+*
 * To figure out how big a step there should be between one up- or
-* down-tick of one of the LED values, we call calculateStep(), 
-* which calculates the absolute gap between the start and end values, 
-* and then divides that gap by 1020 to determine the size of the step  
+* down-tick of one of the LED values, we call calculateStep(),
+* which calculates the absolute gap between the start and end values,
+* and then divides that gap by 1020 to determine the size of the step
 * between adjustments in the value.
 */
 int calculateStep(int prevValue, int endValue) {
     int step = endValue - prevValue; // What's the overall gap?
-    if (step) {                      // If its non-zero, 
+    if (step) {                      // If its non-zero,
         step = 1020/step;            //   divide by 1020
     }
-    
+
     return step;
 }
 
 /* The next function is calculateVal. When the loop value, i,
 *  reaches the step size appropriate for one of the
-*  colors, it increases or decreases the value of that color by 1. 
+*  colors, it increases or decreases the value of that color by 1.
 *  (R, G, and B are each calculated separately.)
 */
 int calculateVal(int step, int val, int i) {
@@ -410,7 +428,7 @@ int calculateVal(int step, int val, int i) {
             val -= 1;
         }
     }
-    
+
     // Defensive driving: make sure val stays in the range 0-255
     if (val > 255) {
         val = 255;
@@ -418,6 +436,6 @@ int calculateVal(int step, int val, int i) {
     else if (val < 0) {
         val = 0;
     }
-    
+
     return val;
 }

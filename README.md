@@ -23,7 +23,7 @@ By sending a JSON payload (in an MQTT message), Home Assistant can include which
 To set this system up, you need to configure the [MQTT JSON light](https://home-assistant.io/components/light.mqtt_json/) component in Home Assistant and set up a light to control. This guide assumes that you already have Home Assistant set up and running. If not, see the installation guides [here](https://home-assistant.io/getting-started/).
 
 ### The Home Assistant Side
-1. In your `configuration.yaml`, add the following, depending on the supported fatures of the light:
+1. In your `configuration.yaml`, add the following, depending on the supported features of the light:
 
     ```yaml
     # Only one color:

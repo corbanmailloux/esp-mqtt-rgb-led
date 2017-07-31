@@ -1,4 +1,4 @@
-# ESP8622 MQTT RGB LEDs Using JSON for Home Assistant
+# ESP8266 MQTT RGB LEDs Using JSON for Home Assistant
 
 This project adds an easy way to create DIY lighting for [Home Assistant](https://home-assistant.io/), an amazing, extensible, open-source home automation system.
 
@@ -30,8 +30,8 @@ To set this system up, you need to configure the [MQTT JSON light](https://home-
     light:
       - platform: mqtt_json
         name: mqtt_json_light_1
-        state_topic: "home/rgb1"
-        command_topic: "home/rgb1/set"
+        state_topic: "home/json_brightness"
+        command_topic: "home/json_brightness/set"
         brightness: true
         optimistic: false
         qos: 0
@@ -39,7 +39,7 @@ To set this system up, you need to configure the [MQTT JSON light](https://home-
     # OR: RGB:
     light:
       - platform: mqtt_json
-        name: mqtt_json_light_1
+        name: mqtt_json_light_2
         state_topic: "home/rgb1"
         command_topic: "home/rgb1/set"
         brightness: true
@@ -51,9 +51,9 @@ To set this system up, you need to configure the [MQTT JSON light](https://home-
     # RGB
     light:
       - platform: mqtt_json
-        name: mqtt_json_light_1
-        state_topic: "home/rgb1"
-        command_topic: "home/rgb1/set"
+        name: mqtt_json_light_3
+        state_topic: "home/rgbw1"
+        command_topic: "home/rgbw1/set"
         brightness: true
         rgb: true
         white_value: true

@@ -48,7 +48,6 @@ To set this system up, you need to configure the [MQTT JSON light](https://home-
         qos: 0
 
     # OR: RGBW
-    # RGB
     light:
       - platform: mqtt_json
         name: mqtt_json_light_3

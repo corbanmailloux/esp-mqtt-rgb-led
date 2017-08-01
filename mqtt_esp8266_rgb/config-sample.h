@@ -35,5 +35,10 @@
 #define CONFIG_COLORFADE_TIME_SLOW 10
 #define CONFIG_COLORFADE_TIME_FAST 3
 
+// Reverse the LED logic
+// false: 0 (off) - 255 (bright)
+// true: 255 (off) - 0 (bright)
+#define CONFIG_INVERT_LED_LOGIC false
+
 // Enables Serial and print statements
 #define CONFIG_DEBUG false

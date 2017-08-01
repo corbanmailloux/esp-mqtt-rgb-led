@@ -18,6 +18,7 @@
 #include <PubSubClient.h>
 
 const bool debug_mode = CONFIG_DEBUG;
+const bool led_invert = CONFIG_INVERT_LED_LOGIC;
 
 const int redPin = CONFIG_PIN_RED;
 const int txPin = BUILTIN_LED; // On-board blue LED
@@ -104,7 +105,7 @@ void setup() {
   if (debug_mode) {
     Serial.begin(115200);
   }
-  
+
   setup_wifi();
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
@@ -328,6 +329,12 @@ void reconnect() {
 }
 
 void setColor(int inR, int inG, int inB) {
+  if (led_invert) {
+    inR = (255 - inR);
+    inG = (255 - inG);
+    inB = (255 - inB);
+  }
+
   analogWrite(redPin, inR);
   analogWrite(greenPin, inG);
   analogWrite(bluePin, inB);

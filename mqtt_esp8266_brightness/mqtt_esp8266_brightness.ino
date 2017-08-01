@@ -18,6 +18,7 @@
 #include <PubSubClient.h>
 
 const bool debug_mode = CONFIG_DEBUG;
+const bool led_invert = CONFIG_INVERT_LED_LOGIC;
 
 const int redPin = CONFIG_PIN_LIGHT;
 const int txPin = BUILTIN_LED; // On-board blue LED
@@ -96,7 +97,6 @@ void setup() {
 }
 
 void setup_wifi() {
-
   delay(10);
   // We start by connecting to a WiFi network
   Serial.println();
@@ -276,6 +276,10 @@ void reconnect() {
 }
 
 void setColor(int inR) { //, int inG, int inB) {
+  if (led_invert) {
+    inR = (255 - inR);
+  }
+  
   analogWrite(redPin, inR);
   // analogWrite(greenPin, inG);
   // analogWrite(bluePin, inB);

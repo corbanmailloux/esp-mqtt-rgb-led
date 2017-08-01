@@ -27,3 +27,13 @@
 
 #define CONFIG_MQTT_PAYLOAD_ON "ON"
 #define CONFIG_MQTT_PAYLOAD_OFF "OFF"
+
+// Miscellaneous
+// Default number of flashes if no value was given
+#define CONFIG_DEFAULT_FLASH_LENGTH 2
+// Number of seconds for one transition in colorfade mode
+#define CONFIG_COLORFADE_TIME_SLOW 10
+#define CONFIG_COLORFADE_TIME_FAST 3
+
+// Enables Serial and print statements
+#define CONFIG_DEBUG false

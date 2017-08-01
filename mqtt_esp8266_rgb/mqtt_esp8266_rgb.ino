@@ -2,7 +2,7 @@
  * ESP8266 MQTT Lights for Home Assistant.
  *
  * This file is for RGB (red, green, and blue) lights.
- * 
+ *
  * See https://github.com/corbanmailloux/esp-mqtt-rgb-led
  */
 
@@ -17,8 +17,10 @@
 // http://pubsubclient.knolleary.net/
 #include <PubSubClient.h>
 
+const bool debug_mode = CONFIG_DEBUG;
+
 const int redPin = CONFIG_PIN_RED;
-const int txPin = 1; // On-board blue LED
+const int txPin = BUILTIN_LED; // On-board blue LED
 const int greenPin = CONFIG_PIN_GREEN;
 const int bluePin = CONFIG_PIN_BLUE;
 
@@ -37,7 +39,7 @@ const char* light_set_topic = CONFIG_MQTT_TOPIC_SET;
 const char* on_cmd = CONFIG_MQTT_PAYLOAD_ON;
 const char* off_cmd = CONFIG_MQTT_PAYLOAD_OFF;
 
-const int BUFFER_SIZE = JSON_OBJECT_SIZE(10);
+const int BUFFER_SIZE = JSON_OBJECT_SIZE(15);
 
 // Maintained state for reporting to HA
 byte red = 255;
@@ -71,6 +73,21 @@ byte flashGreen = green;
 byte flashBlue = blue;
 byte flashBrightness = brightness;
 
+// Globals for colorfade
+bool colorfade = false;
+int currentColor = 0;
+// {red, grn, blu}
+const byte colors[][3] = {
+  {255, 0, 0},
+  {0, 255, 0},
+  {0, 0, 255},
+  {255, 80, 0},
+  {163, 0, 255},
+  {0, 255, 255},
+  {255, 255, 0}
+};
+const int numColors = 7;
+
 WiFiClient espClient;
 PubSubClient client(espClient);
 
@@ -84,7 +101,10 @@ void setup() {
 
   analogWriteRange(255);
 
-  // Serial.begin(115200);
+  if (debug_mode) {
+    Serial.begin(115200);
+  }
+  
   setup_wifi();
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
@@ -123,7 +143,8 @@ void setup_wifi() {
       },
       "flash": 2,
       "transition": 5,
-      "state": "ON"
+      "state": "ON",
+      "effect": "colorfade_fast"
     }
   */
 void callback(char* topic, byte* payload, unsigned int length) {
@@ -180,8 +201,15 @@ bool processJson(char* message) {
   }
 
   // If "flash" is included, treat RGB and brightness differently
-  if (root.containsKey("flash")) {
-    flashLength = (int)root["flash"] * 1000;
+  if (root.containsKey("flash") ||
+       (root.containsKey("effect") && strcmp(root["effect"], "flash") == 0)) {
+
+    if (root.containsKey("flash")) {
+      flashLength = (int)root["flash"] * 1000;
+    }
+    else {
+      flashLength = CONFIG_DEFAULT_FLASH_LENGTH * 1000;
+    }
 
     if (root.containsKey("brightness")) {
       flashBrightness = root["brightness"];
@@ -208,8 +236,26 @@ bool processJson(char* message) {
     flash = true;
     startFlash = true;
   }
-  else { // Not flashing
+  else if (root.containsKey("effect") &&
+      (strcmp(root["effect"], "colorfade_slow") == 0 || strcmp(root["effect"], "colorfade_fast") == 0)) {
     flash = false;
+    colorfade = true;
+    currentColor = 0;
+    if (strcmp(root["effect"], "colorfade_slow") == 0) {
+      transitionTime = CONFIG_COLORFADE_TIME_SLOW;
+    }
+    else {
+      transitionTime = CONFIG_COLORFADE_TIME_FAST;
+    }
+  }
+  else if (colorfade && !root.containsKey("color") && root.containsKey("brightness")) {
+    // Adjust brightness during colorfade
+    // (will be applied when fading to the next color)
+    brightness = root["brightness"];
+  }
+  else { // No effect
+    flash = false;
+    colorfade = false;
 
     if (root.containsKey("color")) {
       red = root["color"]["r"];
@@ -244,6 +290,18 @@ void sendState() {
   color["b"] = blue;
 
   root["brightness"] = brightness;
+
+  if (colorfade) {
+    if (transitionTime == CONFIG_COLORFADE_TIME_SLOW) {
+      root["effect"] = "colorfade_slow";
+    }
+    else {
+      root["effect"] = "colorfade_fast";
+    }
+  }
+  else {
+    root["effect"] = "null";
+  }
 
   char buffer[root.measureLength() + 1];
   root.printTo(buffer, sizeof(buffer));
@@ -312,6 +370,13 @@ void loop() {
       setColor(realRed, realGreen, realBlue);
     }
   }
+  else if (colorfade && !inFade) {
+    realRed = map(colors[currentColor][0], 0, 255, 0, brightness);
+    realGreen = map(colors[currentColor][1], 0, 255, 0, brightness);
+    realBlue = map(colors[currentColor][2], 0, 255, 0, brightness);
+    currentColor = (currentColor + 1) % numColors;
+    startFade = true;
+  }
 
   if (startFade) {
     // If we don't want to fade, skip it.
@@ -340,11 +405,11 @@ void loop() {
     if (now - lastLoop > transitionTime) {
       if (loopCount <= 1020) {
         lastLoop = now;
-        
+
         redVal = calculateVal(stepR, redVal, loopCount);
         grnVal = calculateVal(stepG, grnVal, loopCount);
         bluVal = calculateVal(stepB, bluVal, loopCount);
-        
+
         setColor(redVal, grnVal, bluVal); // Write current values to LED pins
 
         Serial.print("Loop count: ");
@@ -360,45 +425,45 @@ void loop() {
 
 // From https://www.arduino.cc/en/Tutorial/ColorCrossfader
 /* BELOW THIS LINE IS THE MATH -- YOU SHOULDN'T NEED TO CHANGE THIS FOR THE BASICS
-* 
+*
 * The program works like this:
-* Imagine a crossfade that moves the red LED from 0-10, 
+* Imagine a crossfade that moves the red LED from 0-10,
 *   the green from 0-5, and the blue from 10 to 7, in
 *   ten steps.
-*   We'd want to count the 10 steps and increase or 
+*   We'd want to count the 10 steps and increase or
 *   decrease color values in evenly stepped increments.
 *   Imagine a + indicates raising a value by 1, and a -
 *   equals lowering it. Our 10 step fade would look like:
-* 
+*
 *   1 2 3 4 5 6 7 8 9 10
 * R + + + + + + + + + +
 * G   +   +   +   +   +
 * B     -     -     -
-* 
-* The red rises from 0 to 10 in ten steps, the green from 
+*
+* The red rises from 0 to 10 in ten steps, the green from
 * 0-5 in 5 steps, and the blue falls from 10 to 7 in three steps.
-* 
-* In the real program, the color percentages are converted to 
+*
+* In the real program, the color percentages are converted to
 * 0-255 values, and there are 1020 steps (255*4).
-* 
+*
 * To figure out how big a step there should be between one up- or
-* down-tick of one of the LED values, we call calculateStep(), 
-* which calculates the absolute gap between the start and end values, 
-* and then divides that gap by 1020 to determine the size of the step  
+* down-tick of one of the LED values, we call calculateStep(),
+* which calculates the absolute gap between the start and end values,
+* and then divides that gap by 1020 to determine the size of the step
 * between adjustments in the value.
 */
 int calculateStep(int prevValue, int endValue) {
     int step = endValue - prevValue; // What's the overall gap?
-    if (step) {                      // If its non-zero, 
+    if (step) {                      // If its non-zero,
         step = 1020/step;            //   divide by 1020
     }
-    
+
     return step;
 }
 
 /* The next function is calculateVal. When the loop value, i,
 *  reaches the step size appropriate for one of the
-*  colors, it increases or decreases the value of that color by 1. 
+*  colors, it increases or decreases the value of that color by 1.
 *  (R, G, and B are each calculated separately.)
 */
 int calculateVal(int step, int val, int i) {
@@ -410,7 +475,7 @@ int calculateVal(int step, int val, int i) {
             val -= 1;
         }
     }
-    
+
     // Defensive driving: make sure val stays in the range 0-255
     if (val > 255) {
         val = 255;
@@ -418,6 +483,6 @@ int calculateVal(int step, int val, int i) {
     else if (val < 0) {
         val = 0;
     }
-    
+
     return val;
 }

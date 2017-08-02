@@ -1,1 +1,2 @@
-config.h
+config*.h
+!config-sample.h

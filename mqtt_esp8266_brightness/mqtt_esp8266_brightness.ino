@@ -181,7 +181,7 @@ bool processJson(char* message) {
 
   // If "flash" is included, treat RGB and brightness differently
   if (root.containsKey("flash") ||
-       (root.containsKey("effect") && strcmp(root["effect"], "flash") == 0)) {
+       (root.containsKey("effect") && strcmp(root["effect"], "Flash") == 0)) {
 
     if (root.containsKey("flash")) {
       flashLength = (int)root["flash"] * 1000;

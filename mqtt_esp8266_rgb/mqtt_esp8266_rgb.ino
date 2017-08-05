@@ -162,7 +162,7 @@ void setup_wifi() {
       "flash": 2,
       "transition": 5,
       "state": "ON",
-      "effect": "colorfade_fast"
+      "effect": "ColorFade Fast"
     }
   */
 void callback(char* topic, byte* payload, unsigned int length) {
@@ -220,7 +220,7 @@ bool processJson(char* message) {
 
   // If "flash" is included, treat RGB and brightness differently
   if (root.containsKey("flash") ||
-       (root.containsKey("effect") && strcmp(root["effect"], "flash") == 0)) {
+       (root.containsKey("effect") && strcmp(root["effect"], "Flash") == 0)) {
 
     if (root.containsKey("flash")) {
       flashLength = (int)root["flash"] * 1000;
@@ -255,11 +255,11 @@ bool processJson(char* message) {
     startFlash = true;
   }
   else if (root.containsKey("effect") &&
-      (strcmp(root["effect"], "colorfade_slow") == 0 || strcmp(root["effect"], "colorfade_fast") == 0)) {
+      (strcmp(root["effect"], "ColorFade Slow") == 0 || strcmp(root["effect"], "ColorFade Fast") == 0)) {
     flash = false;
     colorfade = true;
     currentColor = 0;
-    if (strcmp(root["effect"], "colorfade_slow") == 0) {
+    if (strcmp(root["effect"], "ColorFade Slow") == 0) {
       transitionTime = CONFIG_COLORFADE_TIME_SLOW;
     }
     else {
@@ -322,10 +322,10 @@ void sendState() {
 
   if (colorfade) {
     if (transitionTime == CONFIG_COLORFADE_TIME_SLOW) {
-      root["effect"] = "colorfade_slow";
+      root["effect"] = "ColorFade Slow";
     }
     else {
-      root["effect"] = "colorfade_fast";
+      root["effect"] = "ColorFade Fast";
     }
   }
   else {

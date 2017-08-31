@@ -34,6 +34,8 @@
 // Number of seconds for one transition in colorfade mode
 #define CONFIG_COLORFADE_TIME_SLOW 10
 #define CONFIG_COLORFADE_TIME_FAST 3
+// Number of seconds for one full pulse cycle
+#define CONFIG_PULSE_TIME 5
 
 // Reverse the LED logic
 // false: 0 (off) - 255 (bright)

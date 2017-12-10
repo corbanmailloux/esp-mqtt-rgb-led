@@ -89,6 +89,16 @@ const byte colors[][3] = {
 };
 const int numColors = 7;
 
+// Globals for pulse
+int pulse = false;
+int pulseDir = 1;
+byte pulseRed = red;
+byte pulseGreen = green;
+byte pulseBlue = blue;
+byte pulseBrightness = brightness;
+byte pulseCurrentBrightness = 0;
+int pulseTickEveryXms;
+
 WiFiClient espClient;
 PubSubClient client(espClient);
 
@@ -236,11 +246,13 @@ bool processJson(char* message) {
 
     flash = true;
     startFlash = true;
+    pulse = false;
   }
   else if (root.containsKey("effect") &&
       (strcmp(root["effect"], "colorfade_slow") == 0 || strcmp(root["effect"], "colorfade_fast") == 0)) {
     flash = false;
     colorfade = true;
+    pulse = false;
     currentColor = 0;
     if (strcmp(root["effect"], "colorfade_slow") == 0) {
       transitionTime = CONFIG_COLORFADE_TIME_SLOW;
@@ -248,6 +260,33 @@ bool processJson(char* message) {
     else {
       transitionTime = CONFIG_COLORFADE_TIME_FAST;
     }
+  }
+  else if (root.containsKey("effect") && strcmp(root["effect"], "pulse") == 0) {
+    if (root.containsKey("brightness")) {
+      pulseBrightness = root["brightness"];
+    }
+    else {
+      pulseBrightness = brightness;
+    }
+
+    pulseCurrentBrightness = pulseBrightness;
+
+    if (root.containsKey("color")) { // get the color to pulse
+      pulseRed = root["color"]["r"];
+      pulseGreen = root["color"]["g"];
+      pulseBlue = root["color"]["b"];
+    }
+    else { // or take the current color
+      pulseRed = red;
+      pulseGreen = green;
+      pulseBlue = blue;
+    }
+
+    pulseTickEveryXms = (CONFIG_PULSE_TIME*1000) / (pulseBrightness*2);
+
+    Serial.println("ACTIVATED PULSING!");
+    pulse = true;
+    flash = colorfade = startFade = inFade = false;
   }
   else if (colorfade && !root.containsKey("color") && root.containsKey("brightness")) {
     // Adjust brightness during colorfade
@@ -257,6 +296,7 @@ bool processJson(char* message) {
   else { // No effect
     flash = false;
     colorfade = false;
+    pulse = false;
 
     if (root.containsKey("color")) {
       red = root["color"]["r"];
@@ -428,6 +468,27 @@ void loop() {
       }
     }
   }
+
+  if (pulse) {
+    if ( millis() % pulseTickEveryXms == 0) {
+      pulseCurrentBrightness += pulseDir;
+    }
+    delay(1); // Don't hit above if-clause twice in the same millisecond
+    Serial.print("pulseCurrentBrightness:");
+    Serial.println(pulseCurrentBrightness);
+    if (pulseDir < 0 && pulseCurrentBrightness <= 0) {
+      pulseDir = 1;
+      Serial.println("pulseDir set to 1");
+    } else if (pulseDir > 0 && pulseCurrentBrightness >= pulseBrightness) {
+      pulseDir = -1;
+      Serial.println("pulseDir set to -1");
+    }
+    int tickRed = map(pulseRed, 0, 255, 0, pulseCurrentBrightness);
+    int tickGreen = map(pulseGreen, 0, 255, 0, pulseCurrentBrightness);
+    int tickBlue = map(pulseBlue, 0, 255, 0, pulseCurrentBrightness);
+    setColor(tickRed, tickGreen, tickBlue);
+  }
+
 }
 
 // From https://www.arduino.cc/en/Tutorial/ColorCrossfader

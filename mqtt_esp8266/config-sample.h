@@ -5,22 +5,24 @@
  * You can then upload the code using the Arduino IDE.
  */
 
-// Define the strip type
-enum strip { BRIGHTNESS // only one color
-           , RGB // RGB LEDs
-           , RGBW // RGB LEDs with an extra white LED per LED
-           }; 
-#define CONFIG_STRIP RGB
+// Leave this here. These are the choices for CONFIG_STRIP below.
+enum strip {
+  BRIGHTNESS, // only one color
+  RGB,        // RGB LEDs
+  RGBW        // RGB LEDs with an extra white LED per LED
+};
+
+#define CONFIG_STRIP RGB // Choose one of the options from above.
 
 // Pins
-// In case of BRIGHTNESS: only RED is used
+// In case of BRIGHTNESS: only WHITE is used
 // In case of RGB(W): red, green, blue(, white) is used
-// All values need to be present, if they are not needed, just write any value,
+// All values need to be present, if they are not needed, set to -1,
 // it will be ignored.
-#define CONFIG_PIN_RED 0
-#define CONFIG_PIN_GREEN 2 // only needed for RGB(W) strips
-#define CONFIG_PIN_BLUE 3 // only needed for RGB(W) strips
-#define CONFIG_PIN_WHITE 4 // only needed for RGBW strips
+#define CONFIG_PIN_RED   0  // For RGB(W)
+#define CONFIG_PIN_GREEN 2  // For RGB(W)
+#define CONFIG_PIN_BLUE  3  // For RGB(W)
+#define CONFIG_PIN_WHITE -1 // For BRIGHTNESS and RGBW
 
 // WiFi
 #define CONFIG_WIFI_SSID "{WIFI-SSID}"

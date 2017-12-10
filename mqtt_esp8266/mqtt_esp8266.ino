@@ -17,8 +17,8 @@
 // http://pubsubclient.knolleary.net/
 #include <PubSubClient.h>
 
-const bool rgb = CONFIG_STRIP == RGB || CONFIG_STRIP == RGBW;
-const bool rgbw = CONFIG_STRIP == RGBW;
+const bool rgb = (CONFIG_STRIP == RGB) || (CONFIG_STRIP == RGBW);
+const bool includeWhite = (CONFIG_STRIP == BRIGHTNESS) || (CONFIG_STRIP == RGBW);
 const bool debug_mode = CONFIG_DEBUG;
 const bool led_invert = CONFIG_INVERT_LED_LOGIC;
 
@@ -99,13 +99,13 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 
 void setup() {
-  pinMode(redPin, OUTPUT);
   if (rgb) {
+    pinMode(redPin, OUTPUT);
     pinMode(greenPin, OUTPUT);
     pinMode(bluePin, OUTPUT);
-    if (rgbw) {
-      pinMode(whitePin, OUTPUT);
-    }
+  }
+  if (includeWhite) {
+    pinMode(whitePin, OUTPUT);
   }
 
   pinMode(txPin, OUTPUT);
@@ -153,7 +153,7 @@ void setup_wifi() {
       "state": "ON"
     }
 
-  SAMPLE PAYLOAD (RGB):
+  SAMPLE PAYLOAD (RGBW):
     {
       "brightness": 120,
       "color": {
@@ -252,7 +252,7 @@ bool processJson(char* message) {
       flashBlue = blue;
     }
 
-    if (rgbw && root.containsKey("white_value")) {
+    if (includeWhite && root.containsKey("white_value")) {
       flashWhite = root["white_value"];
     }
     else {
@@ -294,7 +294,7 @@ bool processJson(char* message) {
       blue = root["color"]["b"];
     }
 
-    if (rgbw && root.containsKey("white_value")) {
+    if (includeWhite && root.containsKey("white_value")) {
       white = root["white_value"];
     }
 
@@ -328,7 +328,7 @@ void sendState() {
 
   root["brightness"] = brightness;
 
-  if (rgbw) {
+  if (includeWhite) {
     root["white_value"] = white;
   }
 
@@ -376,36 +376,44 @@ void setColor(int inR, int inG, int inB, int inW) {
     inW = (255 - inW);
   }
 
-  analogWrite(redPin, inR);
   if (rgb) {
+    analogWrite(redPin, inR);
     analogWrite(greenPin, inG);
     analogWrite(bluePin, inB);
-    if (rgbw) {
-      analogWrite(whitePin, inW);
-    }
   }
 
-  Serial.println("Setting LEDs:");
-  Serial.print(rgb ? "r: " : "");
-  Serial.print(inR);
-  if (rgb) {
-    Serial.print(", g: ");
-    Serial.print(inG);
-    Serial.print(", b: ");
-    Serial.print(inB);
-    if (rgbw) {
-      Serial.print(", w: ");
+  if (includeWhite) {
+    analogWrite(whitePin, inW);
+  }
+
+  if (debug_mode) {
+    Serial.print("Setting LEDs: {");
+    if (rgb) {
+      Serial.print("r: ");
+      Serial.print(inR);
+      Serial.print(" , g: ");
+      Serial.print(inG);
+      Serial.print(" , b: ");
+      Serial.print(inB);
+    }
+
+    if (includeWhite) {
+      if (rgb) {
+        Serial.print(", ");
+      }
+      Serial.print("w: ");
       Serial.print(inW);
     }
+
+    Serial.println("}");
   }
-  Serial.println();
 }
 
 void loop() {
-
   if (!client.connected()) {
     reconnect();
   }
+
   client.loop();
 
   if (flash) {

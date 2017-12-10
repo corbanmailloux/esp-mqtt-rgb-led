@@ -55,6 +55,23 @@ byte realBlue = 0;
 
 bool stateOn = false;
 
+// Globals for color temperature
+int colorTemp = 154; // in mireds
+// {red, grn, blu}
+// From http://planetpixelemporium.com/tutorialpages/light.html
+const byte tempColors[][3] = {
+  {64, 156, 255},  // 20000K (100W Tungsten)
+  {201, 226, 255}, // 7000K (Overcast Sky)
+  {255, 255, 255}, // 6000K (Direct Sunlight)
+  {255, 255, 251}, // 5400K (High Noon Sun)
+  {255, 250, 244}, // 5200K (Carbon Arc)
+  {255, 241, 224}, // 3200K (Halogen)
+  {255, 214, 170}, // 2850K (100W Tungsten)
+  {255, 197, 143}, // 2600K (40W Tungsten)
+  {255, 147, 41}  // 1900K (Candle)
+};
+const int numTempColors = 9;
+
 // Globals for fade/transitions
 bool startFade = false;
 unsigned long lastLoop = 0;
@@ -145,7 +162,7 @@ void setup_wifi() {
       "flash": 2,
       "transition": 5,
       "state": "ON",
-      "effect": "colorfade_fast"
+      "effect": "ColorFade Fast"
     }
   */
 void callback(char* topic, byte* payload, unsigned int length) {
@@ -203,7 +220,7 @@ bool processJson(char* message) {
 
   // If "flash" is included, treat RGB and brightness differently
   if (root.containsKey("flash") ||
-       (root.containsKey("effect") && strcmp(root["effect"], "flash") == 0)) {
+       (root.containsKey("effect") && strcmp(root["effect"], "Flash") == 0)) {
 
     if (root.containsKey("flash")) {
       flashLength = (int)root["flash"] * 1000;
@@ -238,11 +255,11 @@ bool processJson(char* message) {
     startFlash = true;
   }
   else if (root.containsKey("effect") &&
-      (strcmp(root["effect"], "colorfade_slow") == 0 || strcmp(root["effect"], "colorfade_fast") == 0)) {
+      (strcmp(root["effect"], "ColorFade Slow") == 0 || strcmp(root["effect"], "ColorFade Fast") == 0)) {
     flash = false;
     colorfade = true;
     currentColor = 0;
-    if (strcmp(root["effect"], "colorfade_slow") == 0) {
+    if (strcmp(root["effect"], "ColorFade Slow") == 0) {
       transitionTime = CONFIG_COLORFADE_TIME_SLOW;
     }
     else {
@@ -257,6 +274,16 @@ bool processJson(char* message) {
   else { // No effect
     flash = false;
     colorfade = false;
+
+    if (root.containsKey("color_temp")) {
+      // Values between 154 and 500 (range of 356) in mireds
+      colorTemp = root["color_temp"];
+      // Find the closest color temperature from the user input
+      int selectedColorTemp = (int)((((float)colorTemp - 154) * (numTempColors - 1) / 346) + 0.5) % numTempColors;
+      red = tempColors[selectedColorTemp][0];
+      green = tempColors[selectedColorTemp][1];
+      blue = tempColors[selectedColorTemp][2];
+    }
 
     if (root.containsKey("color")) {
       red = root["color"]["r"];
@@ -291,13 +318,14 @@ void sendState() {
   color["b"] = blue;
 
   root["brightness"] = brightness;
+  root["color_temp"] = colorTemp;
 
   if (colorfade) {
     if (transitionTime == CONFIG_COLORFADE_TIME_SLOW) {
-      root["effect"] = "colorfade_slow";
+      root["effect"] = "ColorFade Slow";
     }
     else {
-      root["effect"] = "colorfade_fast";
+      root["effect"] = "ColorFade Fast";
     }
   }
   else {

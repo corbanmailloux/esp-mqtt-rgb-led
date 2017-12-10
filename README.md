@@ -34,7 +34,7 @@ To set this system up, you need to configure the [MQTT JSON light](https://home-
         command_topic: "home/json_brightness/set"
         brightness: true
         effect: true
-        effect_list: [flash]
+        effect_list: ["Flash"]
         optimistic: false
         qos: 0
 
@@ -45,9 +45,10 @@ To set this system up, you need to configure the [MQTT JSON light](https://home-
         state_topic: "home/rgb1"
         command_topic: "home/rgb1/set"
         brightness: true
+        color_temp: true
         rgb: true
         effect: true
-        effect_list: [colorfade_slow, colorfade_fast, flash]
+        effect_list: ["ColorFade Slow", "ColorFade Fast", "Flash"]
         optimistic: false
         qos: 0
 
@@ -61,7 +62,7 @@ To set this system up, you need to configure the [MQTT JSON light](https://home-
         rgb: true
         white_value: true
         effect: true
-        effect_list: [colorfade_slow, colorfade_fast, flash]
+        effect_list: ["ColorFade Slow", "ColorFade Fast", "Flash"]
         optimistic: false
         qos: 0
     ```

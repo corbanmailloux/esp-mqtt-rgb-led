@@ -1,12 +1,16 @@
 /*
  * ESP8266 MQTT Lights for Home Assistant.
  *
- * This file is a joined file for Brightness, RBG and RGBW lights.
+ * Created DIY lights for Home Assistant using MQTT and JSON.
+ * This project supports single-color, RGB, and RGBW lights.
  *
- * See https://github.com/corbanmailloux/esp-mqtt-rgb-led
+ * Copy the included `config-sample.h` file to `config.h` and update
+ * accordingly for your setup.
+ *
+ * See https://github.com/corbanmailloux/esp-mqtt-rgb-led for more information.
  */
 
-// Set configuration options for pins, WiFi, and MQTT in the following file:
+// Set configuration options for LED type, pins, WiFi, and MQTT in the following file:
 #include "config.h"
 
 // https://github.com/bblanchon/ArduinoJson

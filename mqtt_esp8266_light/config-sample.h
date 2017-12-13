@@ -30,6 +30,7 @@ enum strip {
 
 // MQTT
 #define CONFIG_MQTT_HOST "{MQTT-SERVER}"
+#define CONFIG_MQTT_PORT 1883 // Usually 1883
 #define CONFIG_MQTT_USER "{MQTT-USERNAME}"
 #define CONFIG_MQTT_PASS "{MQTT-PASSWORD}"
 #define CONFIG_MQTT_CLIENT_ID "ESP_LED" // Must be unique on the MQTT network

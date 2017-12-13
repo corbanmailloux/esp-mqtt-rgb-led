@@ -7,7 +7,7 @@
 
 // Leave this here. These are the choices for CONFIG_STRIP below.
 enum strip {
-  BRIGHTNESS, // only one color
+  BRIGHTNESS, // only one color/only white
   RGB,        // RGB LEDs
   RGBW        // RGB LEDs with an extra white LED per LED
 };

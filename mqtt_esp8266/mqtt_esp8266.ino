@@ -17,16 +17,15 @@
 // http://pubsubclient.knolleary.net/
 #include <PubSubClient.h>
 
-const bool rgb = (CONFIG_STRIP == RGB) || (CONFIG_STRIP == RGBW);
-const bool includeWhite = (CONFIG_STRIP == BRIGHTNESS) || (CONFIG_STRIP == RGBW);
-const bool debug_mode = CONFIG_DEBUG;
-const bool led_invert = CONFIG_INVERT_LED_LOGIC;
+#include "ColorState.h"
 
-const int redPin = CONFIG_PIN_RED;
+#include "IEffect.h"
+#include "effects/Flash.h"
+#include "effects/ColorFade.h"
+
+ColorState state;
+
 const int txPin = BUILTIN_LED; // On-board blue LED
-const int greenPin = CONFIG_PIN_GREEN;
-const int bluePin = CONFIG_PIN_BLUE;
-const int whitePin = CONFIG_PIN_WHITE;
 
 const char* ssid = CONFIG_WIFI_SSID;
 const char* password = CONFIG_WIFI_PASS;
@@ -45,67 +44,26 @@ const char* off_cmd = CONFIG_MQTT_PAYLOAD_OFF;
 
 const int BUFFER_SIZE = JSON_OBJECT_SIZE(20);
 
-// Maintained state for reporting to HA
-byte red = 255;
-byte green = 255;
-byte blue = 255;
-byte white = 255;
-byte brightness = 255;
-
-// Real values to write to the LEDs (ex. including brightness and state)
-byte realRed = 0;
-byte realGreen = 0;
-byte realBlue = 0;
-byte realWhite = 0;
-
-bool stateOn = false;
-
-// Globals for fade/transitions
-bool startFade = false;
-unsigned long lastLoop = 0;
-int transitionTime = 0;
-bool inFade = false;
-int loopCount = 0;
-int stepR, stepG, stepB, stepW;
-int redVal, grnVal, bluVal, whtVal;
-
-// Globals for flash
-bool flash = false;
-bool startFlash = false;
-int flashLength = 0;
-unsigned long flashStartTime = 0;
-byte flashRed = red;
-byte flashGreen = green;
-byte flashBlue = blue;
-byte flashWhite = white;
-byte flashBrightness = brightness;
-
-// Globals for colorfade
-bool colorfade = false;
-int currentColor = 0;
-// {red, grn, blu, wht}
-const byte colors[][4] = {
-  {255, 0, 0, 0},
-  {0, 255, 0, 0},
-  {0, 0, 255, 0},
-  {255, 80, 0, 0},
-  {163, 0, 255, 0},
-  {0, 255, 255, 0},
-  {255, 255, 0, 0}
+// effects
+Flash flashEffect(state);
+ColorFade colorFadeEffect(state);
+const int effectsCount = 2;
+IEffect *effects[] = {
+  &flashEffect,
+  &colorFadeEffect
 };
-const int numColors = 7;
 
 WiFiClient espClient;
 PubSubClient client(espClient);
 
 void setup() {
-  if (rgb) {
-    pinMode(redPin, OUTPUT);
-    pinMode(greenPin, OUTPUT);
-    pinMode(bluePin, OUTPUT);
+  if (state.includeRgb) {
+    pinMode(state.redPin, OUTPUT);
+    pinMode(state.greenPin, OUTPUT);
+    pinMode(state.bluePin, OUTPUT);
   }
-  if (includeWhite) {
-    pinMode(whitePin, OUTPUT);
+  if (state.includeWhite) {
+    pinMode(state.whitePin, OUTPUT);
   }
 
   pinMode(txPin, OUTPUT);
@@ -113,7 +71,7 @@ void setup() {
 
   analogWriteRange(255);
 
-  if (debug_mode) {
+  if (state.debug_mode) {
     Serial.begin(115200);
   }
 
@@ -184,22 +142,22 @@ void callback(char* topic, byte* payload, unsigned int length) {
     return;
   }
 
-  if (stateOn) {
+  if (state.stateOn) {
     // Update lights
-    realRed = map(red, 0, 255, 0, brightness);
-    realGreen = map(green, 0, 255, 0, brightness);
-    realBlue = map(blue, 0, 255, 0, brightness);
-    realWhite = map(white, 0, 255, 0, brightness);
+    state.realRed = map(state.red, 0, 255, 0, state.brightness);
+    state.realGreen = map(state.green, 0, 255, 0, state.brightness);
+    state.realBlue = map(state.blue, 0, 255, 0, state.brightness);
+    state.realWhite = map(state.white, 0, 255, 0, state.brightness);
   }
   else {
-    realRed = 0;
-    realGreen = 0;
-    realBlue = 0;
-    realWhite = 0;
+    state.realRed = 0;
+    state.realGreen = 0;
+    state.realBlue = 0;
+    state.realWhite = 0;
   }
 
-  startFade = true;
-  inFade = false; // Kill the current fade
+  state.startFade = true;
+  state.inFade = false; // Kill the current fade
 
   sendState();
 }
@@ -216,98 +174,44 @@ bool processJson(char* message) {
 
   if (root.containsKey("state")) {
     if (strcmp(root["state"], on_cmd) == 0) {
-      stateOn = true;
+      state.stateOn = true;
     }
     else if (strcmp(root["state"], off_cmd) == 0) {
-      stateOn = false;
+      state.stateOn = false;
     }
   }
 
-  // If "flash" is included, treat RGB and brightness differently
-  if (root.containsKey("flash") ||
-       (root.containsKey("effect") && strcmp(root["effect"], "flash") == 0)) {
-
-    if (root.containsKey("flash")) {
-      flashLength = (int)root["flash"] * 1000;
-    }
-    else {
-      flashLength = CONFIG_DEFAULT_FLASH_LENGTH * 1000;
-    }
-
-    if (root.containsKey("brightness")) {
-      flashBrightness = root["brightness"];
-    }
-    else {
-      flashBrightness = brightness;
-    }
-
-    if (rgb && root.containsKey("color")) {
-      flashRed = root["color"]["r"];
-      flashGreen = root["color"]["g"];
-      flashBlue = root["color"]["b"];
-    }
-    else {
-      flashRed = red;
-      flashGreen = green;
-      flashBlue = blue;
-    }
-
-    if (includeWhite && root.containsKey("white_value")) {
-      flashWhite = root["white_value"];
-    }
-    else {
-      flashWhite = white;
-    }
-
-    flashRed = map(flashRed, 0, 255, 0, flashBrightness);
-    flashGreen = map(flashGreen, 0, 255, 0, flashBrightness);
-    flashBlue = map(flashBlue, 0, 255, 0, flashBrightness);
-    flashWhite = map(flashWhite, 0, 255, 0, flashBrightness);
-
-    flash = true;
-    startFlash = true;
-  }
-  else if (rgb && root.containsKey("effect") &&
-      (strcmp(root["effect"], "colorfade_slow") == 0 || strcmp(root["effect"], "colorfade_fast") == 0)) {
-    flash = false;
-    colorfade = true;
-    currentColor = 0;
-    if (strcmp(root["effect"], "colorfade_slow") == 0) {
-      transitionTime = CONFIG_COLORFADE_TIME_SLOW;
-    }
-    else {
-      transitionTime = CONFIG_COLORFADE_TIME_FAST;
+  for (int i = 0; i < effectsCount; ++i) {
+    if (effects[i]->processJson(root)) {
+      return true; // terminate if an effect is activated
     }
   }
-  else if (colorfade && !root.containsKey("color") && root.containsKey("brightness")) {
-    // Adjust brightness during colorfade
-    // (will be applied when fading to the next color)
-    brightness = root["brightness"];
+
+  // No effect
+  // stop all active effects
+  for (int i = 0; i < effectsCount; ++i) {
+    effects[i]->end();
   }
-  else { // No effect
-    flash = false;
-    colorfade = false;
 
-    if (rgb && root.containsKey("color")) {
-      red = root["color"]["r"];
-      green = root["color"]["g"];
-      blue = root["color"]["b"];
-    }
+  if (state.includeRgb && root.containsKey("color")) {
+    state.red = root["color"]["r"];
+    state.green = root["color"]["g"];
+    state.blue = root["color"]["b"];
+  }
 
-    if (includeWhite && root.containsKey("white_value")) {
-      white = root["white_value"];
-    }
+  if (state.includeWhite && root.containsKey("white_value")) {
+    state.white = root["white_value"];
+  }
 
-    if (root.containsKey("brightness")) {
-      brightness = root["brightness"];
-    }
+  if (root.containsKey("brightness")) {
+    state.brightness = root["brightness"];
+  }
 
-    if (root.containsKey("transition")) {
-      transitionTime = root["transition"];
-    }
-    else {
-      transitionTime = 0;
-    }
+  if (root.containsKey("transition")) {
+    state.transitionTime = root["transition"];
+  }
+  else {
+    state.transitionTime = 0;
   }
 
   return true;
@@ -318,30 +222,26 @@ void sendState() {
 
   JsonObject& root = jsonBuffer.createObject();
 
-  root["state"] = (stateOn) ? on_cmd : off_cmd;
-  if (rgb) {
+  root["state"] = (state.stateOn) ? on_cmd : off_cmd;
+  if (state.includeRgb) {
     JsonObject& color = root.createNestedObject("color");
-    color["r"] = red;
-    color["g"] = green;
-    color["b"] = blue;
+    color["r"] = state.red;
+    color["g"] = state.green;
+    color["b"] = state.blue;
   }
 
-  root["brightness"] = brightness;
+  root["brightness"] = state.brightness;
 
-  if (includeWhite) {
-    root["white_value"] = white;
+  if (state.includeWhite) {
+    root["white_value"] = state.white;
   }
 
-  if (rgb && colorfade) {
-    if (transitionTime == CONFIG_COLORFADE_TIME_SLOW) {
-      root["effect"] = "colorfade_slow";
+  root["effect"] = "null";
+  for (int i = 0; i < effectsCount; ++i) {
+    if (effects[i]->isRunning()) {
+      root["effect"] = effects[i]->getName();
+      break;
     }
-    else {
-      root["effect"] = "colorfade_fast";
-    }
-  }
-  else {
-    root["effect"] = "null";
   }
 
   char buffer[root.measureLength() + 1];
@@ -368,47 +268,6 @@ void reconnect() {
   }
 }
 
-void setColor(int inR, int inG, int inB, int inW) {
-  if (led_invert) {
-    inR = (255 - inR);
-    inG = (255 - inG);
-    inB = (255 - inB);
-    inW = (255 - inW);
-  }
-
-  if (rgb) {
-    analogWrite(redPin, inR);
-    analogWrite(greenPin, inG);
-    analogWrite(bluePin, inB);
-  }
-
-  if (includeWhite) {
-    analogWrite(whitePin, inW);
-  }
-
-  if (debug_mode) {
-    Serial.print("Setting LEDs: {");
-    if (rgb) {
-      Serial.print("r: ");
-      Serial.print(inR);
-      Serial.print(" , g: ");
-      Serial.print(inG);
-      Serial.print(" , b: ");
-      Serial.print(inB);
-    }
-
-    if (includeWhite) {
-      if (rgb) {
-        Serial.print(", ");
-      }
-      Serial.print("w: ");
-      Serial.print(inW);
-    }
-
-    Serial.println("}");
-  }
-}
-
 void loop() {
   if (!client.connected()) {
     reconnect();
@@ -416,145 +275,10 @@ void loop() {
 
   client.loop();
 
-  if (flash) {
-    if (startFlash) {
-      startFlash = false;
-      flashStartTime = millis();
-    }
-
-    if ((millis() - flashStartTime) <= flashLength) {
-      if ((millis() - flashStartTime) % 1000 <= 500) {
-        setColor(flashRed, flashGreen, flashBlue, flashWhite);
-      }
-      else {
-        setColor(0, 0, 0, 0);
-        // If you'd prefer the flashing to happen "on top of"
-        // the current color, uncomment the next line.
-        // setColor(realRed, realGreen, realBlue, realWhite);
-      }
-    }
-    else {
-      flash = false;
-      setColor(realRed, realGreen, realBlue, realWhite);
-    }
-  }
-  else if (rgb && colorfade && !inFade) {
-    realRed = map(colors[currentColor][0], 0, 255, 0, brightness);
-    realGreen = map(colors[currentColor][1], 0, 255, 0, brightness);
-    realBlue = map(colors[currentColor][2], 0, 255, 0, brightness);
-    realWhite = map(colors[currentColor][3], 0, 255, 0, brightness);
-    currentColor = (currentColor + 1) % numColors;
-    startFade = true;
+  // update effects
+  for (int i = 0; i < effectsCount; ++i) {
+    effects[i]->update();
   }
 
-  if (startFade) {
-    // If we don't want to fade, skip it.
-    if (transitionTime == 0) {
-      setColor(realRed, realGreen, realBlue, realWhite);
-
-      redVal = realRed;
-      grnVal = realGreen;
-      bluVal = realBlue;
-      whtVal = realWhite;
-
-      startFade = false;
-    }
-    else {
-      loopCount = 0;
-      stepR = calculateStep(redVal, realRed);
-      stepG = calculateStep(grnVal, realGreen);
-      stepB = calculateStep(bluVal, realBlue);
-      stepW = calculateStep(whtVal, realWhite);
-
-      inFade = true;
-    }
-  }
-
-  if (inFade) {
-    startFade = false;
-    unsigned long now = millis();
-    if (now - lastLoop > transitionTime) {
-      if (loopCount <= 1020) {
-        lastLoop = now;
-
-        redVal = calculateVal(stepR, redVal, loopCount);
-        grnVal = calculateVal(stepG, grnVal, loopCount);
-        bluVal = calculateVal(stepB, bluVal, loopCount);
-        whtVal = calculateVal(stepW, whtVal, loopCount);
-
-        setColor(redVal, grnVal, bluVal, whtVal); // Write current values to LED pins
-
-        Serial.print("Loop count: ");
-        Serial.println(loopCount);
-        loopCount++;
-      }
-      else {
-        inFade = false;
-      }
-    }
-  }
-}
-
-// From https://www.arduino.cc/en/Tutorial/ColorCrossfader
-/* BELOW THIS LINE IS THE MATH -- YOU SHOULDN'T NEED TO CHANGE THIS FOR THE BASICS
-*
-* The program works like this:
-* Imagine a crossfade that moves the red LED from 0-10,
-*   the green from 0-5, and the blue from 10 to 7, in
-*   ten steps.
-*   We'd want to count the 10 steps and increase or
-*   decrease color values in evenly stepped increments.
-*   Imagine a + indicates raising a value by 1, and a -
-*   equals lowering it. Our 10 step fade would look like:
-*
-*   1 2 3 4 5 6 7 8 9 10
-* R + + + + + + + + + +
-* G   +   +   +   +   +
-* B     -     -     -
-*
-* The red rises from 0 to 10 in ten steps, the green from
-* 0-5 in 5 steps, and the blue falls from 10 to 7 in three steps.
-*
-* In the real program, the color percentages are converted to
-* 0-255 values, and there are 1020 steps (255*4).
-*
-* To figure out how big a step there should be between one up- or
-* down-tick of one of the LED values, we call calculateStep(),
-* which calculates the absolute gap between the start and end values,
-* and then divides that gap by 1020 to determine the size of the step
-* between adjustments in the value.
-*/
-int calculateStep(int prevValue, int endValue) {
-    int step = endValue - prevValue; // What's the overall gap?
-    if (step) {                      // If its non-zero,
-        step = 1020/step;            //   divide by 1020
-    }
-
-    return step;
-}
-
-/* The next function is calculateVal. When the loop value, i,
-*  reaches the step size appropriate for one of the
-*  colors, it increases or decreases the value of that color by 1.
-*  (R, G, and B are each calculated separately.)
-*/
-int calculateVal(int step, int val, int i) {
-    if ((step) && i % step == 0) { // If step is non-zero and its time to change a value,
-        if (step > 0) {              //   increment the value if step is positive...
-            val += 1;
-        }
-        else if (step < 0) {         //   ...or decrement it if step is negative
-            val -= 1;
-        }
-    }
-
-    // Defensive driving: make sure val stays in the range 0-255
-    if (val > 255) {
-        val = 255;
-    }
-    else if (val < 0) {
-        val = 0;
-    }
-
-    return val;
+  state.update();
 }

@@ -23,29 +23,6 @@
 
 const bool rgb = (CONFIG_STRIP == RGB) || (CONFIG_STRIP == RGBW);
 const bool includeWhite = (CONFIG_STRIP == BRIGHTNESS) || (CONFIG_STRIP == RGBW);
-const bool debug_mode = CONFIG_DEBUG;
-const bool led_invert = CONFIG_INVERT_LED_LOGIC;
-
-const int redPin = CONFIG_PIN_RED;
-const int txPin = BUILTIN_LED; // On-board blue LED
-const int greenPin = CONFIG_PIN_GREEN;
-const int bluePin = CONFIG_PIN_BLUE;
-const int whitePin = CONFIG_PIN_WHITE;
-
-const char* ssid = CONFIG_WIFI_SSID;
-const char* password = CONFIG_WIFI_PASS;
-
-const char* mqtt_server = CONFIG_MQTT_HOST;
-const char* mqtt_username = CONFIG_MQTT_USER;
-const char* mqtt_password = CONFIG_MQTT_PASS;
-const char* client_id = CONFIG_MQTT_CLIENT_ID;
-
-// Topics
-const char* light_state_topic = CONFIG_MQTT_TOPIC_STATE;
-const char* light_set_topic = CONFIG_MQTT_TOPIC_SET;
-
-const char* on_cmd = CONFIG_MQTT_PAYLOAD_ON;
-const char* off_cmd = CONFIG_MQTT_PAYLOAD_OFF;
 
 const int BUFFER_SIZE = JSON_OBJECT_SIZE(20);
 
@@ -104,12 +81,12 @@ PubSubClient client(espClient);
 
 void setup() {
   if (rgb) {
-    pinMode(redPin, OUTPUT);
-    pinMode(greenPin, OUTPUT);
-    pinMode(bluePin, OUTPUT);
+    pinMode(CONFIG_PIN_RED, OUTPUT);
+    pinMode(CONFIG_PIN_GREEN, OUTPUT);
+    pinMode(CONFIG_PIN_BLUE, OUTPUT);
   }
   if (includeWhite) {
-    pinMode(whitePin, OUTPUT);
+    pinMode(CONFIG_PIN_WHITE, OUTPUT);
   }
 
   // Set the BUILTIN_LED based on the CONFIG_BUILTIN_LED_MODE
@@ -128,25 +105,24 @@ void setup() {
 
   analogWriteRange(255);
 
-  if (debug_mode) {
+  if (CONFIG_DEBUG) {
     Serial.begin(115200);
   }
 
   setup_wifi();
-  client.setServer(mqtt_server, 1883);
+  client.setServer(CONFIG_MQTT_HOST, CONFIG_MQTT_PORT);
   client.setCallback(callback);
 }
 
 void setup_wifi() {
-
   delay(10);
   // We start by connecting to a WiFi network
   Serial.println();
   Serial.print("Connecting to ");
-  Serial.println(ssid);
+  Serial.println(CONFIG_WIFI_SSID);
 
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
+  WiFi.mode(WIFI_STA); // Disable the built-in WiFi access point.
+  WiFi.begin(CONFIG_WIFI_SSID, CONFIG_WIFI_PASS);
 
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
@@ -230,10 +206,10 @@ bool processJson(char* message) {
   }
 
   if (root.containsKey("state")) {
-    if (strcmp(root["state"], on_cmd) == 0) {
+    if (strcmp(root["state"], CONFIG_MQTT_PAYLOAD_ON) == 0) {
       stateOn = true;
     }
-    else if (strcmp(root["state"], off_cmd) == 0) {
+    else if (strcmp(root["state"], CONFIG_MQTT_PAYLOAD_OFF) == 0) {
       stateOn = false;
     }
   }
@@ -333,7 +309,7 @@ void sendState() {
 
   JsonObject& root = jsonBuffer.createObject();
 
-  root["state"] = (stateOn) ? on_cmd : off_cmd;
+  root["state"] = (stateOn) ? CONFIG_MQTT_PAYLOAD_ON : CONFIG_MQTT_PAYLOAD_OFF;
   if (rgb) {
     JsonObject& color = root.createNestedObject("color");
     color["r"] = red;
@@ -362,7 +338,7 @@ void sendState() {
   char buffer[root.measureLength() + 1];
   root.printTo(buffer, sizeof(buffer));
 
-  client.publish(light_state_topic, buffer, true);
+  client.publish(CONFIG_MQTT_TOPIC_STATE, buffer, true);
 }
 
 void reconnect() {
@@ -370,9 +346,9 @@ void reconnect() {
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
     // Attempt to connect
-    if (client.connect(client_id, mqtt_username, mqtt_password)) {
+    if (client.connect(CONFIG_MQTT_CLIENT_ID, CONFIG_MQTT_USER, CONFIG_MQTT_PASS)) {
       Serial.println("connected");
-      client.subscribe(light_set_topic);
+      client.subscribe(CONFIG_MQTT_TOPIC_SET);
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -384,7 +360,7 @@ void reconnect() {
 }
 
 void setColor(int inR, int inG, int inB, int inW) {
-  if (led_invert) {
+  if (CONFIG_INVERT_LED_LOGIC) {
     inR = (255 - inR);
     inG = (255 - inG);
     inB = (255 - inB);
@@ -392,16 +368,16 @@ void setColor(int inR, int inG, int inB, int inW) {
   }
 
   if (rgb) {
-    analogWrite(redPin, inR);
-    analogWrite(greenPin, inG);
-    analogWrite(bluePin, inB);
+    analogWrite(CONFIG_PIN_RED, inR);
+    analogWrite(CONFIG_PIN_GREEN, inG);
+    analogWrite(CONFIG_PIN_BLUE, inB);
   }
 
   if (includeWhite) {
-    analogWrite(whitePin, inW);
+    analogWrite(CONFIG_PIN_WHITE, inW);
   }
 
-  if (debug_mode) {
+  if (CONFIG_DEBUG) {
     Serial.print("Setting LEDs: {");
     if (rgb) {
       Serial.print("r: ");

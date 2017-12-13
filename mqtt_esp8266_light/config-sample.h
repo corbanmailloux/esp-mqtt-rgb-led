@@ -53,5 +53,11 @@ enum strip {
 // true: 255 (off) - 0 (bright)
 #define CONFIG_INVERT_LED_LOGIC false
 
+// Set the mode for the built-in LED on some boards.
+// -1 = Do nothing. Leave the pin in its default state.
+//  0 = Explicitly set the BUILTIN_LED to LOW.
+//  1 = Explicitly set the BUILTIN_LED to HIGH. (Off for Wemos D1 Mini)
+#define CONFIG_BUILTIN_LED_MODE -1
+
 // Enables Serial and print statements
 #define CONFIG_DEBUG false

@@ -112,8 +112,19 @@ void setup() {
     pinMode(whitePin, OUTPUT);
   }
 
-  pinMode(txPin, OUTPUT);
-  digitalWrite(txPin, HIGH); // Turn off the on-board LED
+  // Set the BUILTIN_LED based on the CONFIG_BUILTIN_LED_MODE
+  switch (CONFIG_BUILTIN_LED_MODE) {
+    case 0:
+      pinMode(BUILTIN_LED, OUTPUT);
+      digitalWrite(BUILTIN_LED, LOW);
+      break;
+    case 1:
+      pinMode(BUILTIN_LED, OUTPUT);
+      digitalWrite(BUILTIN_LED, HIGH);
+      break;
+    default: // Other options (like -1) are ignored.
+      break;
+  }
 
   analogWriteRange(255);
 

@@ -1,12 +1,16 @@
 /*
  * ESP8266 MQTT Lights for Home Assistant.
  *
- * This file is a joined file for Brightness, RBG and RGBW lights.
+ * Created DIY lights for Home Assistant using MQTT and JSON.
+ * This project supports single-color, RGB, and RGBW lights.
  *
- * See https://github.com/corbanmailloux/esp-mqtt-rgb-led
+ * Copy the included `config-sample.h` file to `config.h` and update
+ * accordingly for your setup.
+ *
+ * See https://github.com/corbanmailloux/esp-mqtt-rgb-led for more information.
  */
 
-// Set configuration options for pins, WiFi, and MQTT in the following file:
+// Set configuration options for LED type, pins, WiFi, and MQTT in the following file:
 #include "config.h"
 
 // https://github.com/bblanchon/ArduinoJson
@@ -25,23 +29,6 @@
 
 ColorState state;
 
-const int txPin = BUILTIN_LED; // On-board blue LED
-
-const char* ssid = CONFIG_WIFI_SSID;
-const char* password = CONFIG_WIFI_PASS;
-
-const char* mqtt_server = CONFIG_MQTT_HOST;
-const char* mqtt_username = CONFIG_MQTT_USER;
-const char* mqtt_password = CONFIG_MQTT_PASS;
-const char* client_id = CONFIG_MQTT_CLIENT_ID;
-
-// Topics
-const char* light_state_topic = CONFIG_MQTT_TOPIC_STATE;
-const char* light_set_topic = CONFIG_MQTT_TOPIC_SET;
-
-const char* on_cmd = CONFIG_MQTT_PAYLOAD_ON;
-const char* off_cmd = CONFIG_MQTT_PAYLOAD_OFF;
-
 const int BUFFER_SIZE = JSON_OBJECT_SIZE(20);
 
 // effects
@@ -58,38 +45,48 @@ PubSubClient client(espClient);
 
 void setup() {
   if (state.includeRgb) {
-    pinMode(state.redPin, OUTPUT);
-    pinMode(state.greenPin, OUTPUT);
-    pinMode(state.bluePin, OUTPUT);
+    pinMode(CONFIG_PIN_RED, OUTPUT);
+    pinMode(CONFIG_PIN_GREEN, OUTPUT);
+    pinMode(CONFIG_PIN_BLUE, OUTPUT);
   }
   if (state.includeWhite) {
-    pinMode(state.whitePin, OUTPUT);
+    pinMode(CONFIG_PIN_WHITE, OUTPUT);
   }
 
-  pinMode(txPin, OUTPUT);
-  digitalWrite(txPin, HIGH); // Turn off the on-board LED
+  // Set the BUILTIN_LED based on the CONFIG_BUILTIN_LED_MODE
+  switch (CONFIG_BUILTIN_LED_MODE) {
+    case 0:
+      pinMode(BUILTIN_LED, OUTPUT);
+      digitalWrite(BUILTIN_LED, LOW);
+      break;
+    case 1:
+      pinMode(BUILTIN_LED, OUTPUT);
+      digitalWrite(BUILTIN_LED, HIGH);
+      break;
+    default: // Other options (like -1) are ignored.
+      break;
+  }
 
   analogWriteRange(255);
 
-  if (state.debug_mode) {
+  if (CONFIG_DEBUG) {
     Serial.begin(115200);
   }
 
   setup_wifi();
-  client.setServer(mqtt_server, 1883);
+  client.setServer(CONFIG_MQTT_HOST, CONFIG_MQTT_PORT);
   client.setCallback(callback);
 }
 
 void setup_wifi() {
-
   delay(10);
   // We start by connecting to a WiFi network
   Serial.println();
   Serial.print("Connecting to ");
-  Serial.println(ssid);
+  Serial.println(CONFIG_WIFI_SSID);
 
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
+  WiFi.mode(WIFI_STA); // Disable the built-in WiFi access point.
+  WiFi.begin(CONFIG_WIFI_SSID, CONFIG_WIFI_PASS);
 
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
@@ -173,10 +170,10 @@ bool processJson(char* message) {
   }
 
   if (root.containsKey("state")) {
-    if (strcmp(root["state"], on_cmd) == 0) {
+    if (strcmp(root["state"], CONFIG_MQTT_PAYLOAD_ON) == 0) {
       state.stateOn = true;
     }
-    else if (strcmp(root["state"], off_cmd) == 0) {
+    else if (strcmp(root["state"], CONFIG_MQTT_PAYLOAD_OFF) == 0) {
       state.stateOn = false;
     }
   }
@@ -222,7 +219,7 @@ void sendState() {
 
   JsonObject& root = jsonBuffer.createObject();
 
-  root["state"] = (state.stateOn) ? on_cmd : off_cmd;
+  root["state"] = (state.stateOn) ? CONFIG_MQTT_PAYLOAD_ON : CONFIG_MQTT_PAYLOAD_OFF;
   if (state.includeRgb) {
     JsonObject& color = root.createNestedObject("color");
     color["r"] = state.red;
@@ -247,7 +244,7 @@ void sendState() {
   char buffer[root.measureLength() + 1];
   root.printTo(buffer, sizeof(buffer));
 
-  client.publish(light_state_topic, buffer, true);
+  client.publish(CONFIG_MQTT_TOPIC_STATE, buffer, true);
 }
 
 void reconnect() {
@@ -255,9 +252,9 @@ void reconnect() {
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
     // Attempt to connect
-    if (client.connect(client_id, mqtt_username, mqtt_password)) {
+    if (client.connect(CONFIG_MQTT_CLIENT_ID, CONFIG_MQTT_USER, CONFIG_MQTT_PASS)) {
       Serial.println("connected");
-      client.subscribe(light_set_topic);
+      client.subscribe(CONFIG_MQTT_TOPIC_SET);
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());

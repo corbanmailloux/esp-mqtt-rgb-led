@@ -6,13 +6,6 @@ public:
   //TODO check which variables should be private
   const bool includeRgb = (CONFIG_STRIP == RGB) || (CONFIG_STRIP == RGBW);
   const bool includeWhite = (CONFIG_STRIP == BRIGHTNESS) || (CONFIG_STRIP == RGBW);
-  const bool debug_mode = CONFIG_DEBUG;
-  const bool led_invert = CONFIG_INVERT_LED_LOGIC;
-
-  const int redPin = CONFIG_PIN_RED;
-  const int greenPin = CONFIG_PIN_GREEN;
-  const int bluePin = CONFIG_PIN_BLUE;
-  const int whitePin = CONFIG_PIN_WHITE;
 
   // Maintained state for reporting to HA
   byte red = 255;
@@ -39,7 +32,7 @@ public:
   int redVal, grnVal, bluVal, whtVal;
 
   void setColor(int inR, int inG, int inB, int inW) {
-    if (led_invert) {
+    if (CONFIG_INVERT_LED_LOGIC) {
       inR = (255 - inR);
       inG = (255 - inG);
       inB = (255 - inB);
@@ -47,16 +40,16 @@ public:
     }
 
     if (includeRgb) {
-      analogWrite(redPin, inR);
-      analogWrite(greenPin, inG);
-      analogWrite(bluePin, inB);
+      analogWrite(CONFIG_PIN_RED, inR);
+      analogWrite(CONFIG_PIN_GREEN, inG);
+      analogWrite(CONFIG_PIN_BLUE, inB);
     }
 
     if (includeWhite) {
-      analogWrite(whitePin, inW);
+      analogWrite(CONFIG_PIN_WHITE, inW);
     }
 
-    if (debug_mode) {
+    if (CONFIG_DEBUG) {
       Serial.print("Setting LEDs: {");
       if (includeRgb) {
         Serial.print("r: ");

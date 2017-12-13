@@ -7,7 +7,7 @@
 
 // Leave this here. These are the choices for CONFIG_STRIP below.
 enum strip {
-  BRIGHTNESS, // only one color
+  BRIGHTNESS, // only one color/only white
   RGB,        // RGB LEDs
   RGBW        // RGB LEDs with an extra white LED per LED
 };
@@ -30,6 +30,7 @@ enum strip {
 
 // MQTT
 #define CONFIG_MQTT_HOST "{MQTT-SERVER}"
+#define CONFIG_MQTT_PORT 1883 // Usually 1883
 #define CONFIG_MQTT_USER "{MQTT-USERNAME}"
 #define CONFIG_MQTT_PASS "{MQTT-PASSWORD}"
 #define CONFIG_MQTT_CLIENT_ID "ESP_LED" // Must be unique on the MQTT network
@@ -52,6 +53,12 @@ enum strip {
 // false: 0 (off) - 255 (bright)
 // true: 255 (off) - 0 (bright)
 #define CONFIG_INVERT_LED_LOGIC false
+
+// Set the mode for the built-in LED on some boards.
+// -1 = Do nothing. Leave the pin in its default state.
+//  0 = Explicitly set the BUILTIN_LED to LOW.
+//  1 = Explicitly set the BUILTIN_LED to HIGH. (Off for Wemos D1 Mini)
+#define CONFIG_BUILTIN_LED_MODE -1
 
 // Enables Serial and print statements
 #define CONFIG_DEBUG false

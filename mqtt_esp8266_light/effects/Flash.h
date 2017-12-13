@@ -96,6 +96,7 @@ public:
     }
   }
   virtual void end() {
+    Serial.println("stopping flash");
     running = false;
   }
 

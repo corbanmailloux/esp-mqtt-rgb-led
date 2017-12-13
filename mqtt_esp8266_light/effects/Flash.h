@@ -18,7 +18,7 @@ class Flash: public IEffect {
   byte flashBrightness = 0;
 
 public:
-  Flash(ColorState s):
+  Flash(ColorState& s):
     state(s)
   {
   }

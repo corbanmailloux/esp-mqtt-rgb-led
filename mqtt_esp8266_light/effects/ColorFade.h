@@ -22,7 +22,7 @@ class ColorFade: public IEffect {
   };
 
 public:
-  ColorFade(ColorState s):
+  ColorFade(ColorState& s):
     state(s)
   {
   }

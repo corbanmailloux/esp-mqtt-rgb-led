@@ -74,6 +74,7 @@ public:
 
   void update() { 
     if (startFade) {
+      Serial.println(transitionTime);
       // If we don't want to fade, skip it.
       if (transitionTime == 0) {
         setColor(realRed, realGreen, realBlue, realWhite);
@@ -110,8 +111,8 @@ public:
 
           setColor(redVal, grnVal, bluVal, whtVal); // Write current values to LED pins
 
-          Serial.print("Loop count: ");
-          Serial.println(loopCount);
+          //Serial.print("Loop count: ");
+          //Serial.println(loopCount);
           loopCount++;
         }
         else {

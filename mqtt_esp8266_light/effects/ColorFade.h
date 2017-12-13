@@ -30,7 +30,6 @@ public:
   virtual bool processJson(JsonObject& root) {
     if (state.includeRgb && root.containsKey("effect") &&
       (strcmp(root["effect"], nameSlow) == 0 || strcmp(root["effect"], nameFast) == 0)) {
-      //TODO disable flash: flash = false;
       running = true;
       currentColor = 0;
       if (strcmp(root["effect"], nameSlow) == 0) {
@@ -61,6 +60,7 @@ public:
     }
   }
   virtual void end() {
+    Serial.println("stopping colorfade");
     running = false;
   }
 

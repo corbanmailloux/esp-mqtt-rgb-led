@@ -153,7 +153,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     state.realWhite = 0;
   }
 
-  state.startFade = true;
+  //state.startFade = true; // the fade should be initialized by the effect or transition
   state.inFade = false; // Kill the current fade
 
   sendState();
@@ -180,6 +180,15 @@ bool processJson(char* message) {
 
   for (int i = 0; i < effectsCount; ++i) {
     if (effects[i]->processJson(root)) {
+      Serial.print("starting ");
+      Serial.println(effects[i]->getName());
+      //we must make sure no other effects are still running
+      for (int j = 0; j < effectsCount; ++j) {
+        if (i != j) { // we do not want to stop the effect that just started
+          effects[j]->end();
+        }
+      }
+      
       return true; // terminate if an effect is activated
     }
   }
@@ -211,6 +220,7 @@ bool processJson(char* message) {
     state.transitionTime = 0;
   }
 
+  state.startFade = true;
   return true;
 }
 

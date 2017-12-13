@@ -1,4 +1,4 @@
-# ESP8266 MQTT RGB LEDs Using JSON for Home Assistant
+# ESP8266 MQTT RGB(W) Lights Using JSON for Home Assistant
 
 This project adds an easy way to create DIY lighting for [Home Assistant](https://home-assistant.io/), an amazing, extensible, open-source home automation system.
 
@@ -38,7 +38,7 @@ To set this system up, you need to configure the [MQTT JSON light](https://home-
         optimistic: false
         qos: 0
 
-    # OR: RGB:
+    # RGB:
     light:
       - platform: mqtt_json
         name: mqtt_json_light_2
@@ -51,7 +51,7 @@ To set this system up, you need to configure the [MQTT JSON light](https://home-
         optimistic: false
         qos: 0
 
-    # OR: RGBW
+    # RGBW:
     light:
       - platform: mqtt_json
         name: mqtt_json_light_3
@@ -80,6 +80,10 @@ I'm using ESP8266-01 microcontrollers for my lights because they are so cheap an
 4. Save the configuration file as `config.h`.
 5. Open the `.ino` file in the Arduino IDE and upload to an ESP with the correct connections.
 
+#### About the `DEPRECATED` Folder
+Originally, there were separate Arduino sketches for each of the supported light types. This quickly became redundant and hard-to-maintain, so the new, unified sketch was created.
+
+Please use this (`mqtt_esp8266_light`) sketch going forward. The deprecated sketches will not receive new features and will be removed from the project in the future.
 
 #### Wiring
 For an RGB LED strip using N-MOSFETs for control, you'll want to wire it similar to this:

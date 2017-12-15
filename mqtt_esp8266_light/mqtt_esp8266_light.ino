@@ -139,20 +139,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
     return;
   }
 
-  if (state.stateOn) {
-    // Update lights
-    state.realRed = map(state.red, 0, 255, 0, state.brightness);
-    state.realGreen = map(state.green, 0, 255, 0, state.brightness);
-    state.realBlue = map(state.blue, 0, 255, 0, state.brightness);
-    state.realWhite = map(state.white, 0, 255, 0, state.brightness);
-  }
-  else {
-    state.realRed = 0;
-    state.realGreen = 0;
-    state.realBlue = 0;
-    state.realWhite = 0;
-  }
-
   state.startFade = true;
   state.inFade = false; // Kill the current fade
 
@@ -190,28 +176,7 @@ bool processJson(char* message) {
     effects[i]->end();
   }
 
-  if (state.includeRgb && root.containsKey("color")) {
-    state.red = root["color"]["r"];
-    state.green = root["color"]["g"];
-    state.blue = root["color"]["b"];
-  }
-
-  if (state.includeWhite && root.containsKey("white_value")) {
-    state.white = root["white_value"];
-  }
-
-  if (root.containsKey("brightness")) {
-    state.brightness = root["brightness"];
-  }
-
-  if (root.containsKey("transition")) {
-    state.transitionTime = root["transition"];
-  }
-  else {
-    state.transitionTime = 0;
-  }
-
-  return true;
+  return state.processJson(root);
 }
 
 void sendState() {
@@ -227,11 +192,11 @@ void sendState() {
     color["b"] = state.blue;
   }
 
-  root["brightness"] = state.brightness;
-
   if (state.includeWhite) {
     root["white_value"] = state.white;
   }
+
+  root["brightness"] = state.brightness;
 
   root["effect"] = "null";
   for (int i = 0; i < effectsCount; ++i) {

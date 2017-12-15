@@ -18,7 +18,7 @@ class Flash: public IEffect {
   byte flashBrightness = 0;
 
 public:
-  Flash(ColorState s):
+  Flash(ColorState& s):
     state(s)
   {
   }
@@ -41,7 +41,7 @@ public:
         flashBrightness = state.brightness;
       }
 
-      if (state.includeRgb && root.containsKey("color")) {
+      if (root.containsKey("color")) {
         flashRed = root["color"]["r"];
         flashGreen = root["color"]["g"];
         flashBlue = root["color"]["b"];
@@ -52,7 +52,7 @@ public:
         flashBlue = state.blue;
       }
 
-      if (state.includeWhite && root.containsKey("white_value")) {
+      if (root.containsKey("white_value")) {
         flashWhite = root["white_value"];
       }
       else {
@@ -96,6 +96,7 @@ public:
     }
   }
   virtual void end() {
+    Serial.println("stopping flash");
     running = false;
   }
 

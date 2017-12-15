@@ -21,15 +21,14 @@
 // http://pubsubclient.knolleary.net/
 #include <PubSubClient.h>
 
-#include "ColorState.h"
-
 #include "IEffect.h"
+#include "ColorState.h"
 #include "effects/Flash.h"
 #include "effects/ColorFade.h"
 
-ColorState state;
-
 const int BUFFER_SIZE = JSON_OBJECT_SIZE(20);
+
+ColorState state;
 
 // effects
 Flash flashEffect(state);
@@ -37,7 +36,9 @@ ColorFade colorFadeEffect(state);
 const int effectsCount = 2;
 IEffect *effects[] = {
   &flashEffect,
-  &colorFadeEffect
+  &colorFadeEffect,
+
+  &state // must be the last effect
 };
 
 WiFiClient espClient;
@@ -139,7 +140,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     return;
   }
 
-  state.startFade = true;
+  //state.startFade = true; // the fade should be initialized by the effect or transition
   state.inFade = false; // Kill the current fade
 
   sendState();
@@ -166,17 +167,20 @@ bool processJson(char* message) {
 
   for (int i = 0; i < effectsCount; ++i) {
     if (effects[i]->processJson(root)) {
+      Serial.print("starting ");
+      Serial.println(effects[i]->getName());
+      //we must make sure no other effects are still running
+      for (int j = 0; j < effectsCount; ++j) {
+        if (i != j) { // we do not want to stop the effect that just started
+          effects[j]->end();
+        }
+      }
+      
       return true; // terminate if an effect is activated
     }
   }
 
-  // No effect
-  // stop all active effects
-  for (int i = 0; i < effectsCount; ++i) {
-    effects[i]->end();
-  }
-
-  return state.processJson(root);
+  return false; // something was wrong, the default effect should've been activated
 }
 
 void sendState() {
@@ -184,22 +188,10 @@ void sendState() {
 
   JsonObject& root = jsonBuffer.createObject();
 
-  root["state"] = (state.stateOn) ? CONFIG_MQTT_PAYLOAD_ON : CONFIG_MQTT_PAYLOAD_OFF;
-  if (state.includeRgb) {
-    JsonObject& color = root.createNestedObject("color");
-    color["r"] = state.red;
-    color["g"] = state.green;
-    color["b"] = state.blue;
-  }
-
-  if (state.includeWhite) {
-    root["white_value"] = state.white;
-  }
-
-  root["brightness"] = state.brightness;
+  state.populateJson(root);
 
   root["effect"] = "null";
-  for (int i = 0; i < effectsCount; ++i) {
+  for (int i = 0; i < effectsCount-1; ++i) { // -1 because the last effect is the default and doesn't count
     if (effects[i]->isRunning()) {
       root["effect"] = effects[i]->getName();
       break;
@@ -241,6 +233,4 @@ void loop() {
   for (int i = 0; i < effectsCount; ++i) {
     effects[i]->update();
   }
-
-  state.update();
 }

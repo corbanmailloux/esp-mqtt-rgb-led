@@ -1,7 +1,7 @@
 #ifndef __COLORSTATE_H_INCLUDED__
 #define __COLORSTATE_H_INCLUDED__
 
-class ColorState {
+class ColorState: public IEffect {
 public:
   //TODO check which variables should be private
   const bool includeRgb = (CONFIG_STRIP == RGB) || (CONFIG_STRIP == RGBW);
@@ -80,7 +80,7 @@ public:
     }
   }
 
-  bool processJson(JsonObject& root) {
+  virtual bool processJson(JsonObject& root) {
     if (includeRgb && root.containsKey("color")) {
       red = root["color"]["r"];
       green = root["color"]["g"];
@@ -108,11 +108,30 @@ public:
     realBlue = map(blue, 0, 255, 0, brightness);
     realWhite = map(white, 0, 255, 0, brightness);
 
+    startFade = true;
+
     return true;
   }
 
-  void update() { 
+  void populateJson(JsonObject& root) {
+    root["state"] = (stateOn) ? CONFIG_MQTT_PAYLOAD_ON : CONFIG_MQTT_PAYLOAD_OFF;
+    if (includeRgb) {
+      JsonObject& color = root.createNestedObject("color");
+      color["r"] = red;
+      color["g"] = green;
+      color["b"] = blue;
+    }
+
+    if (includeWhite) {
+      root["white_value"] = white;
+    }
+
+    root["brightness"] = brightness;
+  }
+
+  virtual void update() { 
     if (startFade) {
+      Serial.println(transitionTime);
       // If we don't want to fade, skip it.
       if (transitionTime == 0) {
         setColor(realRed, realGreen, realBlue, realWhite);
@@ -149,8 +168,8 @@ public:
 
           setColor(redVal, grnVal, bluVal, whtVal); // Write current values to LED pins
 
-          Serial.print("Loop count: ");
-          Serial.println(loopCount);
+          //Serial.print("Loop count: ");
+          //Serial.println(loopCount);
           loopCount++;
         }
         else {
@@ -223,6 +242,11 @@ public:
 
       return val;
   }
+
+  virtual void end() {}
+
+  virtual bool isRunning() { return true; }
+  virtual const char* getName() { return ""; }
 };
 
 #endif

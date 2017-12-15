@@ -22,7 +22,7 @@ class ColorFade: public IEffect {
   };
 
 public:
-  ColorFade(ColorState s):
+  ColorFade(ColorState& s):
     state(s)
   {
   }
@@ -30,7 +30,6 @@ public:
   virtual bool processJson(JsonObject& root) {
     if (state.includeRgb && root.containsKey("effect") &&
       (strcmp(root["effect"], nameSlow) == 0 || strcmp(root["effect"], nameFast) == 0)) {
-      //TODO disable flash: flash = false;
       running = true;
       currentColor = 0;
       if (strcmp(root["effect"], nameSlow) == 0) {
@@ -51,7 +50,7 @@ public:
     return false;
   }
   virtual void update() {
-    if (state.includeRgb && running && !state.inFade) {
+    if (running && !state.inFade) {
       state.realRed = map(colors[currentColor][0], 0, 255, 0, state.brightness);
       state.realGreen = map(colors[currentColor][1], 0, 255, 0, state.brightness);
       state.realBlue = map(colors[currentColor][2], 0, 255, 0, state.brightness);
@@ -61,6 +60,7 @@ public:
     }
   }
   virtual void end() {
+    Serial.println("stopping colorfade");
     running = false;
   }
 

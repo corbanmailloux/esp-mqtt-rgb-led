@@ -39,6 +39,14 @@ public:
       inW = (255 - inW);
     }
 
+    // when the light is off it should be off
+    if (!stateOn) {
+      inR = 0;
+      inG = 0;
+      inB = 0;
+      inW = 0;
+    }
+
     if (includeRgb) {
       analogWrite(CONFIG_PIN_RED, inR);
       analogWrite(CONFIG_PIN_GREEN, inG);
@@ -70,6 +78,37 @@ public:
 
       Serial.println("}");
     }
+  }
+
+  bool processJson(JsonObject& root) {
+    if (includeRgb && root.containsKey("color")) {
+      red = root["color"]["r"];
+      green = root["color"]["g"];
+      blue = root["color"]["b"];
+    }
+
+    if (includeWhite && root.containsKey("white_value")) {
+      white = root["white_value"];
+    }
+
+    if (root.containsKey("brightness")) {
+      brightness = root["brightness"];
+    }
+
+    if (root.containsKey("transition")) {
+      transitionTime = root["transition"];
+    }
+    else {
+      transitionTime = 0;
+    }
+
+    // Update lights
+    realRed = map(red, 0, 255, 0, brightness);
+    realGreen = map(green, 0, 255, 0, brightness);
+    realBlue = map(blue, 0, 255, 0, brightness);
+    realWhite = map(white, 0, 255, 0, brightness);
+
+    return true;
   }
 
   void update() { 

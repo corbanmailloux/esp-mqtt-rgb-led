@@ -6,6 +6,7 @@ class ColorFade: public IEffect {
   const char* nameFast = "colorfade_fast";
 
   ColorState& state;
+  Transition& transition;
 
   bool running = false;
   int currentColor = 0;
@@ -22,21 +23,22 @@ class ColorFade: public IEffect {
   };
 
 public:
-  ColorFade(ColorState& s):
-    state(s)
+  ColorFade(ColorState& s, Transition& t):
+    state(s),
+    transition(t)
   {
   }
 
-  virtual bool processJson(JsonObject& root) {
+  bool processJson(JsonObject& root) {
     if (state.includeRgb && root.containsKey("effect") &&
       (strcmp(root["effect"], nameSlow) == 0 || strcmp(root["effect"], nameFast) == 0)) {
       running = true;
       currentColor = 0;
       if (strcmp(root["effect"], nameSlow) == 0) {
-        state.transitionTime = CONFIG_COLORFADE_TIME_SLOW; //TODO preserve original transition time for returning to other effect
+        transition.time = CONFIG_COLORFADE_TIME_SLOW; //TODO preserve original transition time for returning to other effect
       }
       else {
-        state.transitionTime = CONFIG_COLORFADE_TIME_FAST;
+        transition.time = CONFIG_COLORFADE_TIME_FAST;
       }
       return true;
     }
@@ -49,26 +51,31 @@ public:
 
     return false;
   }
-  virtual void update() {
-    if (running && !state.inFade) {
-      state.realRed = map(colors[currentColor][0], 0, 255, 0, state.brightness);
-      state.realGreen = map(colors[currentColor][1], 0, 255, 0, state.brightness);
-      state.realBlue = map(colors[currentColor][2], 0, 255, 0, state.brightness);
-      state.realWhite = map(colors[currentColor][3], 0, 255, 0, state.brightness);
-      currentColor = (currentColor + 1) % numColors;
-      state.startFade = true;
+  void populateJson(JsonObject& root) {
+    if (running) {
+      root["effect"] = getName();
     }
   }
-  virtual void end() {
+
+  void update() {
+    if (running && !transition.running) {
+      byte red = colors[currentColor][0];
+      byte green = colors[currentColor][1];
+      byte blue = colors[currentColor][2];
+      byte white = colors[currentColor][3];
+
+      currentColor = (currentColor + 1) % numColors;
+
+      transition.start(red, green, blue, white);
+    }
+  }
+  void end() {
     Serial.println("stopping colorfade");
     running = false;
   }
 
-  virtual bool isRunning() {
-    return running;
-  }
-  virtual const char* getName() {
-    if (state.transitionTime == CONFIG_COLORFADE_TIME_SLOW) {
+  const char* getName() {
+    if (transition.time == CONFIG_COLORFADE_TIME_SLOW) {
       return nameSlow;
     }
     return nameFast;

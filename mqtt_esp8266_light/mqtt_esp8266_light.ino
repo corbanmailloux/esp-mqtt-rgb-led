@@ -23,6 +23,7 @@
 
 #include "IEffect.h"
 #include "ColorState.h"
+#include "effects/Transition.h"
 #include "effects/Flash.h"
 #include "effects/ColorFade.h"
 
@@ -31,13 +32,14 @@ const int BUFFER_SIZE = JSON_OBJECT_SIZE(20);
 ColorState state;
 
 // effects
-Flash flashEffect(state);
-ColorFade colorFadeEffect(state);
-const int effectsCount = 2;
+Transition transition(state);
+Flash flash(state);
+ColorFade colorFade(state, transition);
+const int effectsCount = 4;
 IEffect *effects[] = {
-  &flashEffect,
-  &colorFadeEffect,
-
+  &flash,
+  &colorFade,
+  &transition,
   &state // must be the last effect
 };
 
@@ -140,9 +142,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
     return;
   }
 
-  //state.startFade = true; // the fade should be initialized by the effect or transition
-  state.inFade = false; // Kill the current fade
-
   sendState();
 }
 
@@ -165,10 +164,9 @@ bool processJson(char* message) {
     }
   }
 
+  // should effect be able to run when the state is off?
   for (int i = 0; i < effectsCount; ++i) {
     if (effects[i]->processJson(root)) {
-      Serial.print("starting ");
-      Serial.println(effects[i]->getName());
       //we must make sure no other effects are still running
       for (int j = 0; j < effectsCount; ++j) {
         if (i != j) { // we do not want to stop the effect that just started
@@ -180,6 +178,7 @@ bool processJson(char* message) {
     }
   }
 
+  Serial.println("no effect applied");
   return false; // something was wrong, the default effect should've been activated
 }
 
@@ -187,20 +186,15 @@ void sendState() {
   StaticJsonBuffer<BUFFER_SIZE> jsonBuffer;
 
   JsonObject& root = jsonBuffer.createObject();
-
-  state.populateJson(root);
-
-  root["effect"] = "null";
-  for (int i = 0; i < effectsCount-1; ++i) { // -1 because the last effect is the default and doesn't count
-    if (effects[i]->isRunning()) {
-      root["effect"] = effects[i]->getName();
-      break;
-    }
+  for (int i = 0; i < effectsCount; ++i) {
+ 	effects[i]->populateJson(root);
   }
 
   char buffer[root.measureLength() + 1];
   root.printTo(buffer, sizeof(buffer));
 
+  Serial.println("sending state:");
+  Serial.println(buffer);
   client.publish(CONFIG_MQTT_TOPIC_STATE, buffer, true);
 }
 

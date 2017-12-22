@@ -7,7 +7,6 @@ class Flash: public IEffect {
   ColorState& state;
 
   bool running = false;
-  bool start = false;
   unsigned long startTime = 0;
   int flashLength = 0;
 
@@ -17,13 +16,18 @@ class Flash: public IEffect {
   byte flashWhite = 0;
   byte flashBrightness = 0;
 
+  byte oriRed = 0;
+  byte oriGreen = 0;
+  byte oriBlue = 0;
+  byte oriWhite = 0;
+
 public:
   Flash(ColorState& s):
     state(s)
   {
   }
 
-  virtual bool processJson(JsonObject& root) {
+  bool processJson(JsonObject& root) {
     if (root.containsKey(name) ||
        (root.containsKey("effect") && strcmp(root["effect"], name) == 0)) {
 
@@ -34,11 +38,13 @@ public:
         flashLength = CONFIG_DEFAULT_FLASH_LENGTH * 1000;
       }
 
+      oriRed = state.red;
+      oriGreen = state.green;
+      oriBlue = state.blue;
+      oriWhite = state.white;
+
       if (root.containsKey("brightness")) {
-        flashBrightness = root["brightness"];
-      }
-      else {
-        flashBrightness = state.brightness;
+        state.brightness = root["brightness"];
       }
 
       if (root.containsKey("color")) {
@@ -59,25 +65,20 @@ public:
         flashWhite = state.white;
       }
 
-      // map the color brightness
-      flashRed = map(flashRed, 0, 255, 0, flashBrightness);
-      flashGreen = map(flashGreen, 0, 255, 0, flashBrightness);
-      flashBlue = map(flashBlue, 0, 255, 0, flashBrightness);
-      flashWhite = map(flashWhite, 0, 255, 0, flashBrightness);
-
+      startTime = millis();
       running = true;
-      start = true;
       return true;
     }
     return false;
   }
-  virtual void update() {
+  void populateJson(JsonObject& root) {
     if (running) {
-      if (start) {
-        start = false;
-        startTime = millis();
-      }
+      root["effect"] = name;
+    }
+  }
 
+  void update() {
+    if (running) {
       if ((millis() - startTime) <= flashLength) {
         if ((millis() - startTime) % 1000 <= 500) {
           state.setColor(flashRed, flashGreen, flashBlue, flashWhite);
@@ -86,25 +87,18 @@ public:
           state.setColor(0, 0, 0, 0);
           // If you'd prefer the flashing to happen "on top of"
           // the current color, uncomment the next line.
-          // setColor(realRed, realGreen, realBlue, realWhite);
+          // state.setColor(oriRed, oriGreen, oriBlue, oriWhite);
         }
       }
       else {
         running = false;
-        state.setColor(state.realRed, state.realGreen, state.realBlue, state.realWhite);
+        state.setColor(oriRed, oriGreen, oriBlue, oriWhite);
       }
     }
   }
-  virtual void end() {
+  void end() {
     Serial.println("stopping flash");
     running = false;
-  }
-
-  virtual bool isRunning() {
-    return running;
-  }
-  virtual const char* getName() {
-    return name;
   }
 };
 

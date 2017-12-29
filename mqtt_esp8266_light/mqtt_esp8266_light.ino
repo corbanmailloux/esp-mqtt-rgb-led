@@ -187,7 +187,7 @@ void sendState() {
 
   JsonObject& root = jsonBuffer.createObject();
   for (int i = 0; i < effectsCount; ++i) {
- 	effects[i]->populateJson(root);
+  effects[i]->populateJson(root);
   }
 
   char buffer[root.measureLength() + 1];

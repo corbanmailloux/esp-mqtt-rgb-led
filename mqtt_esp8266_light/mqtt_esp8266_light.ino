@@ -297,7 +297,7 @@ bool processJson(char* message) {
       transitionTime = root["transition"];
     }
     else {
-      transitionTime = 0;
+      transitionTime = CONFIG_DEFAULT_TRANSITION_TIME;
     }
   }
 

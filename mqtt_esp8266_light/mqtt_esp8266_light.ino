@@ -21,6 +21,9 @@
 // http://pubsubclient.knolleary.net/
 #include <PubSubClient.h>
 
+// https://github.com/depuits/AButt
+#include <AButt.h>
+
 #include "IEffect.h"
 #include "ColorState.h"
 #include "effects/Transition.h"
@@ -46,6 +49,33 @@ IEffect *effects[] = {
 WiFiClient espClient;
 PubSubClient client(espClient);
 
+AButt button(CONFIG_PIN_BUTTON, true);
+
+void clicked(unsigned short clicks) {
+  if (CONFIG_BUTTON_NATIVE && clicks == 1) {
+    //toggle light state
+    state.stateOn = !state.stateOn;
+    sendState();
+  }
+
+  if (CONFIG_BUTTON_MQTT) {
+    char cstr[2];
+    itoa(clicks, cstr, 10);
+    client.publish(CONFIG_MQTT_TOPIC_BUTTON, cstr);
+  }
+}
+
+void holdStart() {
+  if (CONFIG_BUTTON_MQTT) {
+    client.publish(CONFIG_MQTT_TOPIC_BUTTON, "hold", true);
+  }
+}
+void holdEnd() {
+  if (CONFIG_BUTTON_MQTT) {
+    client.publish(CONFIG_MQTT_TOPIC_BUTTON, "release", true);
+  }
+}
+
 void setup() {
   if (state.includeRgb) {
     pinMode(CONFIG_PIN_RED, OUTPUT);
@@ -54,6 +84,13 @@ void setup() {
   }
   if (state.includeWhite) {
     pinMode(CONFIG_PIN_WHITE, OUTPUT);
+  }
+
+  if (CONFIG_PIN_BUTTON != -1) {
+    pinMode(CONFIG_PIN_BUTTON, INPUT_PULLUP);
+
+    button.onClick(clicked);
+    button.onHold(holdStart, holdEnd);
   }
 
   // Set the BUILTIN_LED based on the CONFIG_BUILTIN_LED_MODE

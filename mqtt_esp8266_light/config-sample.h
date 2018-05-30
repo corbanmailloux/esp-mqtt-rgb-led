@@ -24,6 +24,8 @@ enum strip {
 #define CONFIG_PIN_BLUE  3  // For RGB(W)
 #define CONFIG_PIN_WHITE -1 // For BRIGHTNESS and RGBW
 
+#define CONFIG_PIN_BUTTON -1 // change to actual pin number of the button or leave at -1 if there is no button
+
 // WiFi
 #define CONFIG_WIFI_SSID "{WIFI-SSID}"
 #define CONFIG_WIFI_PASS "{WIFI-PASSWORD}"
@@ -38,6 +40,7 @@ enum strip {
 // MQTT Topics
 #define CONFIG_MQTT_TOPIC_STATE "home/ESP_LED"
 #define CONFIG_MQTT_TOPIC_SET "home/ESP_LED/set"
+#define CONFIG_MQTT_TOPIC_BUTTON "home/ESP_LED/button"
 
 #define CONFIG_MQTT_PAYLOAD_ON "ON"
 #define CONFIG_MQTT_PAYLOAD_OFF "OFF"
@@ -59,6 +62,12 @@ enum strip {
 //  0 = Explicitly set the BUILTIN_LED to LOW.
 //  1 = Explicitly set the BUILTIN_LED to HIGH. (Off for Wemos D1 Mini)
 #define CONFIG_BUILTIN_LED_MODE -1
+
+// Do the native defined actions of the button. These actions are preformed
+//  on the esp module itself without communicating with home assistent.
+#define CONFIG_BUTTON_NATIVE true
+// Send button changes to the specified MQTT topic
+#define CONFIG_BUTTON_MQTT true
 
 // Enables Serial and print statements
 #define CONFIG_DEBUG false

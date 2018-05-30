@@ -259,9 +259,9 @@ void loop() {
   }
 
   client.loop();
-  
+
   if (CONFIG_PIN_BUTTON != -1) {
-    button.update(clicked);
+    button.update();
   }
 
   // update effects

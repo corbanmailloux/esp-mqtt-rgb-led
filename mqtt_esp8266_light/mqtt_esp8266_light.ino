@@ -226,7 +226,7 @@ bool processJson(char* message) {
     }
 
     if (root.containsKey("brightness")) {
-      flashBrightness = root["brightness"];
+      flashBrightness = map(root["brightness"], 0, 255, MIN_RANGE, MAX_RANGE);
     }
     else {
       flashBrightness = brightness;
@@ -273,7 +273,7 @@ bool processJson(char* message) {
   else if (colorfade && !root.containsKey("color") && root.containsKey("brightness")) {
     // Adjust brightness during colorfade
     // (will be applied when fading to the next color)
-    brightness = root["brightness"];
+    brightness = map(root["brightness"], 0, 255, MIN_RANGE, MAX_RANGE);
   }
   else { // No effect
     flash = false;
@@ -290,7 +290,7 @@ bool processJson(char* message) {
     }
 
     if (root.containsKey("brightness")) {
-      brightness = root["brightness"];
+      brightness = map(root["brightness"], 0, 255, MIN_RANGE, MAX_RANGE);
     }
 
     if (root.containsKey("transition")) {
@@ -317,7 +317,7 @@ void sendState() {
     color["b"] = blue;
   }
 
-  root["brightness"] = brightness;
+  root["brightness"] = map(brightness, MIN_RANGE, MAX_RANGE, 0, 255);
 
   if (includeWhite) {
     root["white_value"] = white;

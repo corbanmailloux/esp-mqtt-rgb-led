@@ -14,6 +14,10 @@ enum strip {
 
 #define CONFIG_STRIP RGB // Choose one of the options from above.
 
+// If voltages below 150 cause the LED strip to switch off, then adjust the lower range here such tht the slider in Home Assistant has the desired effect
+#define MIN_RANGE 0
+#define MAX_RANGE 255
+
 // Pins
 // In case of BRIGHTNESS: only WHITE is used
 // In case of RGB(W): red, green, blue(, white) is used

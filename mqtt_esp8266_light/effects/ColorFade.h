@@ -70,7 +70,9 @@ public:
     }
   }
   void end() {
+#ifdef CONFIG_DEBUG
     Serial.println("stopping colorfade");
+#endif
     running = false;
   }
 

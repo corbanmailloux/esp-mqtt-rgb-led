@@ -97,7 +97,9 @@ public:
     }
   }
   void end() {
+#ifdef CONFIG_DEBUG
     Serial.println("stopping flash");
+#endif
     running = false;
   }
 };

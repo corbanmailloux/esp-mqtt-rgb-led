@@ -5,6 +5,17 @@
  * You can then upload the code using the Arduino IDE.
  */
 
+// Module type
+// Uncomment the line with the correct module name
+#define ESP8266
+//#define ENC28J60
+//#define W5100
+
+// Network mac address, not used by ESP8266, change to something unique within your network
+#ifndef ESP8266
+uint8_t mac[6] = {0x00,0x01,0x02,0x03,0x04,0x05};
+#endif
+
 // Leave this here. These are the choices for CONFIG_STRIP below.
 enum strip {
   BRIGHTNESS, // only one color/only white
@@ -24,7 +35,7 @@ enum strip {
 #define CONFIG_PIN_BLUE  3  // For RGB(W)
 #define CONFIG_PIN_WHITE -1 // For BRIGHTNESS and RGBW
 
-#define CONFIG_PIN_BUTTON -1 // change to actual pin number of the button or leave at -1 if there is no button
+#define CONFIG_PIN_BUTTON -1 // change to actual pin number of the button or comment if there is no button
 
 // WiFi
 #define CONFIG_WIFI_SSID "{WIFI-SSID}"
@@ -69,5 +80,5 @@ enum strip {
 // Send button changes to the specified MQTT topic
 #define CONFIG_BUTTON_MQTT true
 
-// Enables Serial and print statements
-#define CONFIG_DEBUG false
+// Enables Serial and print statements, comment out to disable debug logs
+#define CONFIG_DEBUG

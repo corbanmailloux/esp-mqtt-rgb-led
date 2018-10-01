@@ -19,7 +19,6 @@ class ColorState: public IEffect {
       inW = (255 - inW);
     }
 
-
     if (includeRgb) {
       analogWrite(CONFIG_PIN_RED, inR);
       analogWrite(CONFIG_PIN_GREEN, inG);
@@ -30,27 +29,27 @@ class ColorState: public IEffect {
       analogWrite(CONFIG_PIN_WHITE, inW);
     }
 
-    /*if (CONFIG_DEBUG) {
-      Serial.print("Setting LEDs: {");
+#ifdef CONFIG_DEBUG
+    Serial.print("Setting LEDs: {");
+    if (includeRgb) {
+      Serial.print("r: ");
+      Serial.print(inR);
+      Serial.print(" , g: ");
+      Serial.print(inG);
+      Serial.print(" , b: ");
+      Serial.print(inB);
+    }
+
+    if (includeWhite) {
       if (includeRgb) {
-        Serial.print("r: ");
-        Serial.print(inR);
-        Serial.print(" , g: ");
-        Serial.print(inG);
-        Serial.print(" , b: ");
-        Serial.print(inB);
+        Serial.print(", ");
       }
+      Serial.print("w: ");
+      Serial.print(inW);
+    }
 
-      if (includeWhite) {
-        if (includeRgb) {
-          Serial.print(", ");
-        }
-        Serial.print("w: ");
-        Serial.print(inW);
-      }
-
-      Serial.println("}");
-    }*/
+    Serial.println("}");
+#endif
   }
 
 public:

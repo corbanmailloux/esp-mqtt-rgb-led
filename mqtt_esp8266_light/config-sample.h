@@ -5,6 +5,17 @@
  * You can then upload the code using the Arduino IDE.
  */
 
+// Module type
+// Uncomment the line with the correct module name
+#define ESP8266
+//#define ENC28J60
+//#define W5100
+
+// Network mac address, not used by ESP8266, change to something unique within your network
+#ifndef ESP8266
+uint8_t mac[6] = {0x00,0x01,0x02,0x03,0x04,0x05};
+#endif
+
 // Leave this here. These are the choices for CONFIG_STRIP below.
 enum strip {
   BRIGHTNESS, // only one color/only white
@@ -24,6 +35,8 @@ enum strip {
 #define CONFIG_PIN_BLUE  3  // For RGB(W)
 #define CONFIG_PIN_WHITE -1 // For BRIGHTNESS and RGBW
 
+#define CONFIG_PIN_BUTTON -1 // change to actual pin number of the button or comment if there is no button
+
 // WiFi
 #define CONFIG_WIFI_SSID "{WIFI-SSID}"
 #define CONFIG_WIFI_PASS "{WIFI-PASSWORD}"
@@ -38,6 +51,7 @@ enum strip {
 // MQTT Topics
 #define CONFIG_MQTT_TOPIC_STATE "home/ESP_LED"
 #define CONFIG_MQTT_TOPIC_SET "home/ESP_LED/set"
+#define CONFIG_MQTT_TOPIC_BUTTON "home/ESP_LED/button"
 
 #define CONFIG_MQTT_PAYLOAD_ON "ON"
 #define CONFIG_MQTT_PAYLOAD_OFF "OFF"
@@ -60,5 +74,11 @@ enum strip {
 //  1 = Explicitly set the BUILTIN_LED to HIGH. (Off for Wemos D1 Mini)
 #define CONFIG_BUILTIN_LED_MODE -1
 
-// Enables Serial and print statements
-#define CONFIG_DEBUG false
+// Do the native defined actions of the button. These actions are preformed
+//  on the esp module itself without communicating with home assistent.
+#define CONFIG_BUTTON_NATIVE true
+// Send button changes to the specified MQTT topic
+#define CONFIG_BUTTON_MQTT true
+
+// Enables Serial and print statements, comment out to disable debug logs
+#define CONFIG_DEBUG

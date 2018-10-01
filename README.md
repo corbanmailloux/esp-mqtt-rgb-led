@@ -25,53 +25,74 @@ To set this system up, you need to configure the [MQTT JSON light](https://home-
 ### The Home Assistant Side
 1. In your `configuration.yaml`, add the following, depending on the supported features of the light:
 
-    ```yaml
-    # Only one color:
-    light:
-      - platform: mqtt_json
-        name: mqtt_json_light_1
-        state_topic: "home/json_brightness"
-        command_topic: "home/json_brightness/set"
-        brightness: true
-        effect: true
-        effect_list: [flash]
-        optimistic: false
-        qos: 0
+```yaml
+# Only one color:
+light:
+  - platform: mqtt_json
+    name: mqtt_json_light_1
+    state_topic: "home/json_brightness"
+    command_topic: "home/json_brightness/set"
+    brightness: true
+    effect: true
+    effect_list: [flash]
+    optimistic: false
+    qos: 0
 
-    # RGB:
-    light:
-      - platform: mqtt_json
-        name: mqtt_json_light_2
-        state_topic: "home/rgb1"
-        command_topic: "home/rgb1/set"
-        brightness: true
-        rgb: true
-        effect: true
-        effect_list: [colorfade_slow, colorfade_fast, flash]
-        optimistic: false
-        qos: 0
+# RGB:
+light:
+  - platform: mqtt_json
+    name: mqtt_json_light_2
+    state_topic: "home/rgb1"
+    command_topic: "home/rgb1/set"
+    brightness: true
+    rgb: true
+    effect: true
+    effect_list: [colorfade_slow, colorfade_fast, flash]
+    optimistic: false
+    qos: 0
 
-    # RGBW:
-    light:
-      - platform: mqtt_json
-        name: mqtt_json_light_3
-        state_topic: "home/rgbw1"
-        command_topic: "home/rgbw1/set"
-        brightness: true
-        rgb: true
-        white_value: true
-        effect: true
-        effect_list: [colorfade_slow, colorfade_fast, flash]
-        optimistic: false
-        qos: 0
-    ```
+# RGBW:
+light:
+  - platform: mqtt_json
+    name: mqtt_json_light_3
+    state_topic: "home/rgbw1"
+    command_topic: "home/rgbw1/set"
+    brightness: true
+    rgb: true
+    white_value: true
+    effect: true
+    effect_list: [colorfade_slow, colorfade_fast, flash]
+    optimistic: false
+    qos: 0
+```
+
+If you want to add additional functionality to the button then the simplest way is to add an automation:
+
+```yaml
+automation: 
+  - alias: Button action
+    id: button_action
+    trigger:
+    - platform: mqtt
+      topic: home/ESP_LED/button
+      payload: '2' # double press button
+    action:
+    # Call service for the action: e.g. play/pause media player
+    - service: media_player.media_play_pause
+```
+
+The different possible payloads are:
+- **1 to 5**: for the number of times the button is pressed (1 is a single press, 2 is double press,  tripple press, ...)
+- **hold**: send when the button is pressed and hold
+- **release**: send when the button is released after a hold
+
 2. Set the `name`, `state_topic`, and `command_topic` to values that make sense for you.
 3. Restart Home Assistant. Depending on how you installed it, the process differs. For a Raspberry Pi All-in-One install, use `sudo systemctl restart home-assistant.service` (or just restart the Pi).
 
 ### The Light Side
 I'm using ESP8266-01 microcontrollers for my lights because they are so cheap and small. The downside of the size and price is that programming them can be a bit of a hassle. There are many sites that go into detail, so I won't do it here. You'll need an ESP set up to work with the Arduino IDE. See the readme [here](https://github.com/esp8266/Arduino) for instructions. Another good device to work with is the [Wemos D1 Mini](https://wiki.wemos.cc/products:d1:d1_mini), which has a built-in micro-USB port and is much easier to program.
 
-1. Using the Library Manager in the Arduino IDE, install [ArduinoJSON](https://github.com/bblanchon/ArduinoJson/) and [PubSubClient](http://pubsubclient.knolleary.net/). You can find the Library Manager in the "Sketch" menu under "Include Library" -> "Manage Libraries..."
+1. Install [ArduinoJSON](https://github.com/bblanchon/ArduinoJson/), [PubSubClient](http://pubsubclient.knolleary.net/), and [AButt](https://github.com/depuits/AButt). You can install the libraries using the Library Manager in the Arduino IDE, which can be found in the "Sketch" menu under "Include Library" -> "Manage Libraries...". For the latest version of the libraries (or if they can't be found in the Library manager) you'll have to manually install the labraries.
 2. Open the `mqtt_esp8266_light` project in the Arduino IDE.
 3. Update the `config-sample.h` file with your settings for LED type, pin numbers, WiFi settings, and MQTT settings.
   1. Review the comments to help with the options. For the `CONFIG_STRIP` option, choose one of `BRIGHTNESS`, `RGB`, or `RGBW`.

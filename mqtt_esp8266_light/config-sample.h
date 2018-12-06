@@ -35,6 +35,8 @@ enum strip {
 #define CONFIG_MQTT_PASS "{MQTT-PASSWORD}"
 #define CONFIG_MQTT_CLIENT_ID "ESP_LED" // Must be unique on the MQTT network
 
+#define CONFIG_DEFAULT_TRANSITION_TIME 1
+
 // MQTT Topics
 #define CONFIG_MQTT_TOPIC_STATE "home/ESP_LED"
 #define CONFIG_MQTT_TOPIC_SET "home/ESP_LED/set"

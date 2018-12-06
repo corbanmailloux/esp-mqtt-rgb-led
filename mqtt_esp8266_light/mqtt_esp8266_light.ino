@@ -89,15 +89,15 @@ void setup() {
     pinMode(CONFIG_PIN_WHITE, OUTPUT);
   }
 
-  // Set the BUILTIN_LED based on the CONFIG_BUILTIN_LED_MODE
-  switch (CONFIG_BUILTIN_LED_MODE) {
+  // Set the LED_BUILTIN based on the CONFIG_LED_BUILTIN_MODE
+  switch (CONFIG_LED_BUILTIN_MODE) {
     case 0:
-      pinMode(BUILTIN_LED, OUTPUT);
-      digitalWrite(BUILTIN_LED, LOW);
+      pinMode(LED_BUILTIN, OUTPUT);
+      digitalWrite(LED_BUILTIN, LOW);
       break;
     case 1:
-      pinMode(BUILTIN_LED, OUTPUT);
-      digitalWrite(BUILTIN_LED, HIGH);
+      pinMode(LED_BUILTIN, OUTPUT);
+      digitalWrite(LED_BUILTIN, HIGH);
       break;
     default: // Other options (like -1) are ignored.
       break;

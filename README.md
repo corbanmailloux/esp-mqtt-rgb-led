@@ -20,7 +20,7 @@ By sending a JSON payload (in an MQTT message), Home Assistant can include which
 
 ## Installation/Configuration
 
-To set this system up, you need to configure the [MQTT JSON light](https://home-assistant.io/components/light.mqtt_json/) component in Home Assistant and set up a light to control. This guide assumes that you already have Home Assistant set up and running. If not, see the installation guides [here](https://home-assistant.io/getting-started/).
+To set this system up, you need to configure the [MQTT light](https://www.home-assistant.io/components/light.mqtt/#json-schema) component in Home Assistant and set up a light to control. This guide assumes that you already have Home Assistant set up and running. If not, see the installation guides [here](https://home-assistant.io/getting-started/).
 
 ### The Home Assistant Side
 1. In your `configuration.yaml`, add the following, depending on the supported features of the light:
@@ -28,7 +28,8 @@ To set this system up, you need to configure the [MQTT JSON light](https://home-
     ```yaml
     # Only one color:
     light:
-      - platform: mqtt_json
+      - platform: mqtt
+        schema: json
         name: mqtt_json_light_1
         state_topic: "home/json_brightness"
         command_topic: "home/json_brightness/set"
@@ -40,7 +41,8 @@ To set this system up, you need to configure the [MQTT JSON light](https://home-
 
     # RGB:
     light:
-      - platform: mqtt_json
+      - platform: mqtt
+        schema: json
         name: mqtt_json_light_2
         state_topic: "home/rgb1"
         command_topic: "home/rgb1/set"
@@ -53,7 +55,8 @@ To set this system up, you need to configure the [MQTT JSON light](https://home-
 
     # RGBW:
     light:
-      - platform: mqtt_json
+      - platform: mqtt
+        schema: json
         name: mqtt_json_light_3
         state_topic: "home/rgbw1"
         command_topic: "home/rgbw1/set"

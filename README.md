@@ -75,6 +75,7 @@ To set this system up, you need to configure the [MQTT light](https://www.home-a
 I'm using ESP8266-01 microcontrollers for my lights because they are so cheap and small. The downside of the size and price is that programming them can be a bit of a hassle. There are many sites that go into detail, so I won't do it here. You'll need an ESP set up to work with the Arduino IDE. See the readme [here](https://github.com/esp8266/Arduino) for instructions. Another good device to work with is the [Wemos D1 Mini](https://wiki.wemos.cc/products:d1:d1_mini), which has a built-in micro-USB port and is much easier to program.
 
 1. Using the Library Manager in the Arduino IDE, install [ArduinoJSON](https://github.com/bblanchon/ArduinoJson/) and [PubSubClient](http://pubsubclient.knolleary.net/). You can find the Library Manager in the "Sketch" menu under "Include Library" -> "Manage Libraries..."
+  * **NOTE:**: At the moment, this project only supports ArduinoJSON version 5. The default is now version 6, so you'll have to specify the version to install in the dropdown in the Library Manager window.
 2. Open the `mqtt_esp8266_light` project in the Arduino IDE.
 3. Update the `config-sample.h` file with your settings for LED type, pin numbers, WiFi settings, and MQTT settings.
   1. Review the comments to help with the options. For the `CONFIG_STRIP` option, choose one of `BRIGHTNESS`, `RGB`, or `RGBW`.

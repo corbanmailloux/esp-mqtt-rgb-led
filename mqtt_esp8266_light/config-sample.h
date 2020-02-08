@@ -64,3 +64,7 @@ enum strip {
 
 // Enables Serial and print statements
 #define CONFIG_DEBUG false
+
+// Constants for OTA updates
+#define OTA_ENABLED true
+#define OTA_HOSTNAME "LED-OTA"

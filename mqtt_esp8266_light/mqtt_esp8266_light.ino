@@ -21,6 +21,9 @@
 // http://pubsubclient.knolleary.net/
 #include <PubSubClient.h>
 
+// OTA firmware update
+#include "ota.h"
+
 const bool rgb = (CONFIG_STRIP == RGB) || (CONFIG_STRIP == RGBW);
 const bool includeWhite = (CONFIG_STRIP == BRIGHTNESS) || (CONFIG_STRIP == RGBW);
 
@@ -112,6 +115,10 @@ void setup() {
   setup_wifi();
   client.setServer(CONFIG_MQTT_HOST, CONFIG_MQTT_PORT);
   client.setCallback(callback);
+
+  if (OTA_ENABLED) {
+    setupOta();
+  }
 }
 
 void setup_wifi() {
@@ -401,6 +408,11 @@ void setColor(int inR, int inG, int inB, int inW) {
 }
 
 void loop() {
+
+  if (OTA_ENABLED) {
+    ArduinoOTA.handle();
+  }
+
   if (!client.connected()) {
     reconnect();
   }

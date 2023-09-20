@@ -1,3 +1,58 @@
+# Deprecation Notice
+This project served a need originally, but I no longer use or maintain it. I use and highly recommend [ESPHome](https://esphome.io/), which supports everything this project can handle and much, much more.
+ESPHome has a local API with a native integration with Home Assistant, but can also be used separately from Home Assistant using [the MQTT component](https://esphome.io/components/mqtt).
+
+As an example, this is an initial configuration you could use in ESPHome to replace this whole project for an RGB light using MQTT:
+```yaml
+esphome:
+  name: rgb-light # Update this.
+
+esp8266:
+  # Update to match your board. See: https://esphome.io/components/esp8266.html
+  board: d1_mini
+
+wifi:
+  ssid: wifi_ssid # Update this (ideally using !secrets)
+  password: wifi_password # Update this (ideally using !secrets)
+
+mqtt:
+  broker: 192.168.1.2 # Update this.
+  username: username # Update this (ideally using !secrets)
+  password: password # Update this (ideally using !secrets)
+
+logger:
+ota:
+
+output:
+  - platform: esp8266_pwm
+    id: red_pin
+    pin: GPIO0 # Update this.
+  - platform: esp8266_pwm
+    id: green_pin
+    pin: GPIO2 # Update this.
+  - platform: esp8266_pwm
+    id: blue_pin
+    pin: GPIO3 # Update this.
+
+light:
+  - platform: rgb
+    name: "RGB Light"
+    red: red_pin
+    green: green_pin
+    blue: blue_pin
+```
+
+See the relevant light components for more help:
+- [Monochromatic Light](https://esphome.io/components/light/monochromatic)
+- [RGB Light](https://esphome.io/components/light/rgb)
+- [RGBW Light](https://esphome.io/components/light/rgbw)
+
+Thank you for using this repo and providing feedback. Going forward, I've moved some of my development attention to supporting ESPHome.
+
+Previous README below.
+
+----
+
 # ESP8266 MQTT RGB(W) Lights Using JSON for Home Assistant
 
 This project adds an easy way to create DIY lighting for [Home Assistant](https://home-assistant.io/), an amazing, extensible, open-source home automation system.

@@ -139,6 +139,9 @@ I'm using ESP8266-01 microcontrollers for my lights because they are so cheap an
 4. Save the configuration file as `config.h`.
 5. Open the `.ino` file in the Arduino IDE and upload to an ESP with the correct connections.
 
+#### OTA updates
+The sketch includes `ota.h`  if you prefer to disable the OTA updates, change the `OTA_ENABLED` constant to `false`. 
+
 #### About the `DEPRECATED` Folder
 Originally, there were separate Arduino sketches for each of the supported light types. This quickly became redundant and hard-to-maintain, so the new, unified sketch was created.
 
